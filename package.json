@@ -1,0 +1,48 @@
+{
+  "name": "@cuddlynest/mcp-server-cuddlynest",
+  "version": "0.1.0",
+  "description": "MCP server for CuddlyNest hotel search and listing details (rooms, prices, availability)",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [
+    "cuddlynest",
+    "hotel",
+    "travel",
+    "mcp"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "mcp-server-cuddlynest": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "sync-version.js",
+    "!dist/*.mcpb"
+  ],
+  "scripts": {
+    "build": "node sync-version.js && tsc && shx chmod +x dist/*.js",
+    "pack": "npm run build && npx @anthropic-ai/mcpb pack . dist/mcp-server-cuddlynest.mcpb",
+    "prepare": "npm run build",
+    "version": "node sync-version.js && git add manifest.json",
+    "pretest": "npm run build",
+    "test": "node test-extension.js && node test-merge.js",
+    "watch": "tsc --watch",
+    "sync-version": "node sync-version.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.1",
+    "cheerio": "^1.0.0",
+    "node-fetch": "^3.3.2",
+    "robots-parser": "^3.0.1",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9",
+    "@types/node-fetch": "^2.6.12",
+    "@types/ws": "^8.5.12",
+    "shx": "^0.3.4",
+    "typescript": "^5.8.2"
+  }
+}
