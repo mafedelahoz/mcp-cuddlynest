@@ -18,20 +18,11 @@ import { dirname, join } from "path";
 import {
   BASE_URL,
   parseHotelInput,
-  buildRoomGroupsSessionId,
-  buildDestinationSlug,
   fetchStaticListing,
   resolveDestinations,
-  getAccessToken,
   shapeUnit,
-  OPEN_QUESTIONS,
 } from "./cuddlynest.js";
-import {
-  fetchRoomsAndPricing,
-  buildSearchFrame,
-  CUDDLYNEST_WS_BASE,
-  CUDDLYNEST_ACCESS_TOKEN,
-} from "./rooms-ws.js";
+import { resolveListingPath, scrapeListing } from "./scrape-listing.js";
 
 // ---------------------------------------------------------------------------
 // Version (generic scaffolding, unchanged)
@@ -49,6 +40,7 @@ function getVersion(): string {
 }
 
 const VERSION = getVersion();
+const SCRAPE_TIMEOUT_MS = parseInt(process.env.CUDDLYNEST_SCRAPE_TIMEOUT_MS || "35000", 10);
 
 // ---------------------------------------------------------------------------
 // Tool definitions
@@ -78,9 +70,9 @@ const CUDDLYNEST_SEARCH_TOOL: Tool = {
   name: "cuddlynest_search",
   description:
     "Resolve a destination on CuddlyNest (city / area) to its candidates via the " +
-    "autosuggestion API, including the internal slug used for pricing lookups. " +
-    "NOTE: enumerating the hotels in a destination (with prices) needs a further " +
-    "capture — for live room prices on a known hotel use cuddlynest_listing_details.",
+    "public autosuggestion API (name, city/state/country, coordinates, property " +
+    "count). Does NOT enumerate a destination's hotels — for a specific hotel's " +
+    "rooms and prices use cuddlynest_listing_details.",
   inputSchema: {
     type: "object",
     properties: {
@@ -98,9 +90,9 @@ const CUDDLYNEST_LISTING_DETAILS_TOOL: Tool = {
   name: "cuddlynest_listing_details",
   description:
     "Get details for a specific CuddlyNest hotel: static basics (name, location, " +
-    "description, amenities, images) from the listing page, plus live room options, " +
-    "prices, availability and cancellation policies streamed from CuddlyNest's " +
-    "wholesale-supplier WebSocket (accumulated across partial messages).",
+    "description, amenities, images) from the listing page, plus room options, " +
+    "prices, availability and cancellation policies read from the public listing " +
+    "page rendered in a headless browser.",
   inputSchema: {
     type: "object",
     properties: {
@@ -110,13 +102,6 @@ const CUDDLYNEST_LISTING_DETAILS_TOOL: Tool = {
           "CuddlyNest hotel URL or numeric product_id. The product_id is the trailing " +
           "number in a listing URL, e.g. " +
           "https://www.cuddlynest.com/hotel/us/le-meridien-boston-cambridge-4264955 -> 4264955.",
-      },
-      destinationSlug: {
-        type: "string",
-        description:
-          "CuddlyNest internal destination slug for the hotel's city (e.g. " +
-          "'SantaMartaMagdalenaColombia'). Optional — derived from the listing page's " +
-          "city/state/country when omitted.",
       },
       ignoreRobotsText: {
         type: "boolean",
@@ -201,9 +186,7 @@ function normalizeGuests(params: any) {
     ? params.childAges.map((a: any) => parseInt(String(a), 10)).filter((n: number) => !Number.isNaN(n))
     : [];
   const children =
-    params.children != null
-      ? parseInt(String(params.children), 10)
-      : childAges.length || 0;
+    params.children != null ? parseInt(String(params.children), 10) : childAges.length || 0;
   return {
     checkin: params.checkin as string | undefined,
     checkout: params.checkout as string | undefined,
@@ -223,9 +206,7 @@ async function handleSearch(params: any) {
   const { destination } = params;
   const g = normalizeGuests(params);
 
-  if (!destination) {
-    return textResult({ error: "Provide `destination`." }, true);
-  }
+  if (!destination) return textResult({ error: "Provide `destination`." }, true);
 
   let candidates;
   try {
@@ -244,11 +225,8 @@ async function handleSearch(params: any) {
     note:
       candidates.length === 0
         ? "No destination candidates returned."
-        : "Destination(s) resolved. Enumerating the hotels in a destination (with " +
-          "prices) needs a further capture — CuddlyNest's destination-level search " +
-          "protocol has not been captured. For a specific hotel, call " +
-          "cuddlynest_listing_details with its URL or product_id.",
-    openQuestions: OPEN_QUESTIONS,
+        : "Destination(s) resolved. This tool does not list a destination's hotels — " +
+          "call cuddlynest_listing_details with a specific hotel URL or product_id.",
   });
 }
 
@@ -266,7 +244,7 @@ async function handleListingDetails(params: any) {
   const hotelUrl = sourceUrl || `${BASE_URL}/hotel/-${productId}`;
   const notes: string[] = [];
 
-  // --- Static basics (Cheerio) --------------------------------------------
+  // --- Static basics (Cheerio) ------------------------------------------
   let staticListing: any = null;
   let staticError: string | undefined;
   const path = new URL(hotelUrl).pathname;
@@ -277,10 +255,8 @@ async function handleListingDetails(params: any) {
       staticListing = await fetchStaticListing(productId, sourceUrl);
       if (staticListing?.degraded) {
         notes.push(
-          "Static listing parse is degraded: no schema.org Hotel block found. Only " +
-            "meta-tag basics were extracted; city/state/country may be missing, which " +
-            "would leave the destination slug empty. Pass `destinationSlug` explicitly " +
-            "or map the CuddlyNest hotel-page DOM (fetchStaticListing() in cuddlynest.ts).",
+          "Static listing parse is degraded: no schema.org Hotel block found; only " +
+            "meta-tag basics were extracted.",
         );
       }
     } catch (e) {
@@ -288,111 +264,64 @@ async function handleListingDetails(params: any) {
     }
   }
 
-  // --- Destination slug --------------------------------------------------
-  let destinationSlug: string = params.destinationSlug || "";
-  if (!destinationSlug && staticListing) {
-    destinationSlug = buildDestinationSlug(
-      staticListing.city,
-      staticListing.state,
-      staticListing.country,
-    );
-  }
-  if (!destinationSlug) {
-    notes.push(
-      "Could not determine a destination slug (no `destinationSlug` param and the " +
-        "listing page did not yield city/state/country). The pricing request may " +
-        "return nothing.",
-    );
-  }
-
-  // --- Live rooms + pricing (WebSocket) --------------------------------
+  // --- Rooms + pricing (headless browser, public page) ---------------
   let rooms: any = null;
   let roomsError: string | undefined;
   if (!g.checkin || !g.checkout) {
     roomsError =
-      "checkin and checkout (YYYY-MM-DD) are required to fetch room prices and availability.";
+      "checkin and checkout (YYYY-MM-DD) are required to read room prices and availability.";
   } else {
-    const sessionid = buildRoomGroupsSessionId({
-      destinationSlug,
-      hotelProductId: productId,
-      checkin: g.checkin,
-      checkout: g.checkout,
-      adults: g.adults,
-      children: g.children,
-      infants: g.infants,
-      rooms: g.rooms,
-      currency: g.currency,
-      propertyType: "Hotel",
-    });
-    log("info", "Built room_groups sessionid", { sessionid });
-
-    const { token, source, note: tokenNote } = await getAccessToken(
-      CUDDLYNEST_ACCESS_TOKEN || undefined,
-      hotelUrl,
-      log,
-    );
-
-    if (!token) {
-      roomsError = tokenNote;
-    } else {
-      notes.push(`Access token source: ${source}.`);
-      const locationParts = [
-        staticListing?.city,
-        staticListing?.state,
-        staticListing?.country,
-      ].filter(Boolean);
-      const frame = buildSearchFrame({
-        sessionid,
-        productId,
-        checkin: g.checkin,
-        checkout: g.checkout,
-        currency: g.currency,
-        adults: g.adults,
-        children: g.children,
-        infants: g.infants,
-        rooms: g.rooms,
-        childAges: g.childAges,
-        location: locationParts.join(", "),
-        locationType: "Hotel",
-      });
-
-      const result = await fetchRoomsAndPricing(
-        { sessionid, frame, currency: g.currency, accessToken: token },
-        { log },
+    try {
+      const listingPath = await resolveListingPath(productId);
+      const result = await scrapeListing(
+        {
+          productId,
+          listingPath,
+          checkin: g.checkin,
+          checkout: g.checkout,
+          adults: g.adults,
+          children: g.children,
+          childrenAges: g.childAges,
+          infants: g.infants,
+          rooms: g.rooms,
+          currency: g.currency,
+        },
+        { timeoutMs: SCRAPE_TIMEOUT_MS, log },
       );
-
-      if (result.status === "error" && result.unitDetails.length === 0) {
-        roomsError = result.note || "WebSocket request failed.";
-      } else {
-        rooms = {
-          status: result.status,
-          sessionid: result.sessionid,
-          filters: result.filters,
-          partnersSeen: result.partnersSeen,
-          messagesReceived: result.messageCount,
-          units: result.unitDetails.map((u) => shapeUnit(u, g.currency)),
-        };
-        if (result.status !== "complete") {
-          notes.push(
-            `Room stream ended as "${result.status}" (no terminal frame seen before ` +
-              `timeout) — results may be incomplete.`,
-          );
-        }
+      const units = result.rooms.map((u) => shapeUnit(u, g.currency));
+      rooms = {
+        listingUrl: result.url,
+        // "From <price>" header off the page when present; otherwise the cheapest
+        // extracted unit (the header uses a fragile selector — see scrape-listing.ts).
+        fromPriceText: result.fromPriceText,
+        fromPrice: units.length ? Math.min(...units.map((u) => u.unitPrice)) : null,
+        currency: g.currency,
+        scrapedAt: result.scrapedAt,
+        partnersSeen: [...new Set(units.map((u) => u.partnerName))],
+        units,
+      };
+      if (result.rooms.length === 0) {
+        notes.push(
+          "The listing page rendered but no room offers were extracted. Either the " +
+            "page did not finish loading in time (raise CUDDLYNEST_SCRAPE_TIMEOUT_MS) " +
+            "or CuddlyNest's frontend prop shape changed — see extractRoomsFromDom() " +
+            "in scrape-listing.ts.",
+        );
       }
+    } catch (e) {
+      roomsError = e instanceof Error ? e.message : String(e);
     }
   }
 
   return textResult({
     productId,
     hotelUrl,
-    destinationSlug: destinationSlug || null,
     guests: g,
     staticListing,
     staticError,
     rooms,
     roomsError,
     notes,
-    openQuestions: OPEN_QUESTIONS,
   });
 }
 
@@ -414,8 +343,7 @@ function log(level: "info" | "warn" | "error", message: string, data?: any) {
 log("info", "CuddlyNest MCP Server starting", {
   version: VERSION,
   ignoreRobotsTxt: IGNORE_ROBOTS_TXT,
-  wsBase: CUDDLYNEST_WS_BASE,
-  accessTokenSupplied: !!CUDDLYNEST_ACCESS_TOKEN,
+  scrapeTimeoutMs: SCRAPE_TIMEOUT_MS,
   nodeVersion: process.version,
   platform: process.platform,
 });

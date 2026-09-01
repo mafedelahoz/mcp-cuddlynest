@@ -4,8 +4,8 @@
   "name": "cuddlynest-search",
   "display_name": "CuddlyNest Search & Listings",
   "version": "0.1.0",
-  "description": "Search CuddlyNest hotels and get listing details including live room prices and availability",
-  "long_description": "An MCP server for searching CuddlyNest hotels and retrieving listing details. Static basics (name, location, description, amenities, images) are read from the listing page; room options, prices, availability and cancellation policies are streamed from CuddlyNest's wholesale-supplier WebSocket and accumulated across partial messages. Read-only: search and listing details only, no booking or payment. Respects robots.txt by default with an option to override for testing.",
+  "description": "Search CuddlyNest hotels and get listing details including room prices and availability",
+  "long_description": "An MCP server for searching CuddlyNest hotels and retrieving listing details. Static basics (name, location, description, amenities, images) are read from the listing page's structured data; room options, prices, availability and cancellation policies are read from the public listing page rendered in a headless browser (Playwright/Chromium) — the same content any visitor sees, with no access to internal APIs or auth tokens. Read-only: search and listing details only, no booking or payment. Respects robots.txt by default with an option to override for testing.",
   "author": {
     "name": "Altmatter"
   },
@@ -26,19 +26,18 @@
       "env": {
         "NODE_ENV": "production",
         "IGNORE_ROBOTS_TXT": "${user_config.ignore_robots_txt}",
-        "CUDDLYNEST_WS_URL": "${user_config.cuddlynest_ws_url}",
-        "CUDDLYNEST_ACCESS_TOKEN": "${user_config.cuddlynest_access_token}"
+        "CUDDLYNEST_SCRAPE_TIMEOUT_MS": "${user_config.scrape_timeout_ms}"
       }
     }
   },
   "tools": [
     {
       "name": "cuddlynest_search",
-      "description": "Search CuddlyNest for hotels in a destination. Returns matching properties with links."
+      "description": "Resolve a destination on CuddlyNest to its candidates (name, location, coordinates, property count) via the public autosuggestion API."
     },
     {
       "name": "cuddlynest_listing_details",
-      "description": "Get details for a specific CuddlyNest hotel: static basics plus live room options, prices, availability and cancellation policies."
+      "description": "Get details for a specific CuddlyNest hotel: static basics plus room options, prices, availability and cancellation policies read from the public listing page."
     }
   ],
   "tools_generated": false,
@@ -62,20 +61,12 @@
       "default": false,
       "required": false
     },
-    "cuddlynest_ws_url": {
+    "scrape_timeout_ms": {
       "type": "string",
-      "title": "CuddlyNest WebSocket base URL (override)",
-      "description": "Override the room-pricing WebSocket base URL (without ?access_token). Defaults to wss://ldp.cuddlynest.com/websocket/ldp_room_groups. Leave blank unless the endpoint moves.",
-      "default": "",
+      "title": "Listing scrape timeout (ms)",
+      "description": "Max time to wait for the listing page's rooms/prices to render in the headless browser. Default 35000.",
+      "default": "35000",
       "required": false
-    },
-    "cuddlynest_access_token": {
-      "type": "string",
-      "title": "CuddlyNest app access token (optional)",
-      "description": "Anonymous RS256 JWT (sub 'web', ~1h TTL) for the pricing WebSocket. Leave blank to let the server scrape a fresh one from a CuddlyNest page; supply one to skip the scrape or if scraping fails.",
-      "default": "",
-      "required": false,
-      "sensitive": true
     }
   }
 }

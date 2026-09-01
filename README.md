@@ -1,129 +1,74 @@
 # CuddlyNest Search & Listings — MCP Server
 
 A Model Context Protocol (MCP) server for searching [CuddlyNest](https://www.cuddlynest.com)
-hotels and retrieving listing details, including **live room options, prices,
+hotels and retrieving listing details, including **room options, prices,
 availability and cancellation policies**.
 
 Read-only by design: search and listing details only. No booking, no payment.
 
-> This project was seeded from the MCP server scaffolding of
+> Seeded from the MCP-server scaffolding of
 > [`openbnb-org/mcp-server-airbnb`](https://github.com/openbnb-org/mcp-server-airbnb)
 > (MIT). The MCP transport/registration layer is reused; the data-fetching layer
-> is a full rewrite, because CuddlyNest works nothing like Airbnb — see
-> [How CuddlyNest serves data](#how-cuddlynest-serves-data). The original
-> copyright notice is retained in [LICENSE](LICENSE) per the MIT terms.
+> is a full rewrite. The original copyright notice is retained in
+> [LICENSE](LICENSE) per the MIT terms.
 
 ---
 
-## Status
+## How it gets the data
 
-| Capability | State |
+CuddlyNest does not serve room prices in its static HTML. Pricing renders
+client-side on the **public listing page**, backed by the site's own
+infrastructure and third-party wholesale suppliers (`dida travels`,
+`hotelplanner`, `ratehawk`, `hxpro`, `rakuten`, …).
+
+This server reads that data **the same way a visitor does**: it opens the real,
+public listing page in a headless browser (Playwright/Chromium), lets *the
+page's own JavaScript* load the rooms, waits for them to render, and reads the
+result out of the DOM.
+
+**Scope — public content only.** This is deliberately aligned with what the tech
+team recommended: read the same public page a visitor sees, using the same
+transport already used for amenities/images/location. The server does **not**
+call CuddlyNest's internal WebSocket, does **not** touch their auth/token
+endpoints, and carries **no access token**. An earlier draft that minted an
+anonymous token and spoke to the private WebSocket directly was dropped — nothing
+established that as authorized.
+
+| Data | Source |
 | --- | --- |
-| MCP server / stdio transport / tool registration | ✅ working |
-| `cuddlynest_listing_details` — product_id parsing | ✅ working |
-| `cuddlynest_listing_details` — static basics (name, location, amenities, images) via schema.org ld+json | ✅ working (verified against a live hotel) |
-| `cuddlynest_listing_details` — `sessionid` + destination slug + outgoing frame | ✅ built, matches captures + a live A/B |
-| `cuddlynest_listing_details` — live rooms/pricing WebSocket + partial-message merge | ✅ wired to `wss://ldp.cuddlynest.com/websocket/ldp_room_groups`; **needs an access token** (below) |
-| `cuddlynest_search` — destination resolution + slug | ✅ working (autosuggestion API) |
-| `cuddlynest_search` — hotel enumeration with prices | 🔌 protocol not captured |
+| Name, description, address, coordinates, star rating, amenities, images | Listing page `schema.org` `ld+json` + Open Graph tags (`cuddlynest.ts`) |
+| Room title, partner, `unit_price`, `remaining_rooms`, `price_breakdown`, `cancellation_policy` (incl. `.text`), `room_filters` | Rendered listing page DOM, via a React-fiber walk (`scrape-listing.ts`) |
+| Destination → city/state/country/coords/slug | `autosuggestion-2-0.cuddlynest.com` (public, no auth) |
+| `product_id` → canonical listing path | `/hotel/-<id>` server redirect |
 
-### The one thing still needed: the access token
+### The DOM extraction, and how it breaks
 
-The WebSocket requires `?access_token=<JWT>` — an **anonymous** RS256 app token
-(`sub: "web"`, ~1h TTL, issuer `jwt-issuer.cuddlynest.com`; not tied to a user
-account). It is minted **in-browser at page bootstrap** and is **not** in the
-server-rendered HTML, so the server cannot scrape it. Until the token-issuance
-call is captured (DevTools → Network, filter by `jwt-issuer`, on a cold page
-load), pass a token you copied from a live session:
+`extractRoomsFromDom()` walks every price-shaped text node (`COL$742,637`), then
+walks up its **React fiber tree** to the nearest ancestor component whose props
+carry both `unit_price` and `roomGroups`. Those props are the room offer the
+page already rendered.
 
-```
-CUDDLYNEST_ACCESS_TOKEN=eyJ...   # env
-# or
---access-token eyJ...            # arg
-```
+This is coupled to CuddlyNest's current frontend internals (a React prop shape,
+not a stable contract). If they ship a frontend change it can start returning
+zero rooms even though the public page still shows prices. The single place to
+update is the detector condition `'unit_price' in p && 'roomGroups' in p` in
+[scrape-listing.ts](scrape-listing.ts). `npm run e2e:sansiraka` is meant to
+catch that early (non-zero exit, not a silent empty result).
 
-Everything else (endpoint URL, outgoing frame shape, sessionid, terminal-status
-detection) is captured and implemented.
+The `fromPriceText` ("From COL$…") field uses a looser heuristic and can come
+back `null` even on a healthy scrape; `rooms.fromPrice` (cheapest extracted
+unit) is the reliable figure.
 
-## How CuddlyNest serves data
+---
 
-1. **Pricing and room availability are not in the static HTML** and are **not a
-   normal REST/XHR call**. They arrive over a **WebSocket**
-   (`wss://ldp.cuddlynest.com/websocket/ldp_room_groups?access_token=<JWT>`) as a
-   stream of `Connection.Message` events, delivered to a dedicated Web Worker
-   which forwards them to the page via `postMessage`. The single outgoing request
-   frame mirrors the `payload.data` object the page hands that Worker.
-2. CuddlyNest does **not own the inventory** — prices come from third-party
-   wholesale suppliers (observed: `dida travels`, `hotelplanner`, `ratehawk`,
-   `hxpro`). Each supplier answers at its own pace, so **one search produces
-   several `"partial"` messages** that must be accumulated and merged. The final
-   frame has `payload.status === "success"` **and** `payload.data.streaming_status
-   === "complete"`, after which the server closes the socket (~3s total).
-3. The hotel `product_id` is the **trailing number in a listing URL**, e.g.
-   `https://www.cuddlynest.com/hotel/us/le-meridien-boston-cambridge-4264955` →
-   `4264955`. No separate lookup needed.
-4. A search is keyed by a `sessionid` string:
+## Requirements
 
-   ```
-   room_groups_:{destination_slug}:{children}:{infants}:{adults}:{rooms}:{property_type}:viewport:{currency}:{hotel_product_id}:{checkin}:{checkout}:{currency_lowercase}
-
-   room_groups_:SantaMartaMagdalenaColombia:0:0:2:1:Hotel:viewport:COP:4395541:2026-10-05:2026-10-08:cop
-   ```
-
-   `children:infants:adults:rooms` order confirmed by a live A/B capture.
-5. `{destination_slug}` is built **client-side** as `name + state + country` with
-   separators and non-alphanumerics stripped (`Santa Marta` + `Magdalena` +
-   `Colombia` → `SantaMartaMagdalenaColombia`) — **not** the `slug` the
-   autosuggestion API returns. `cuddlynest_listing_details` derives it from the
-   listing page's schema.org address (expanding the ISO country code, e.g.
-   `CO` → `Colombia`).
-
-## Still uncaptured
-
-- **Access token issuance** — see [the status section](#the-one-thing-still-needed-the-access-token).
-- **Destination-level search** — `cuddlynest_search` resolves the destination and
-  slug via `autosuggestion-2-0.cuddlynest.com` (no auth), but the protocol that
-  enumerates a destination's hotels *with prices* is not captured. Capture the WS
-  frame(s) fired from a city results page (as opposed to a single hotel page).
-
-## Tools
-
-### `cuddlynest_search`
-
-Resolve a destination to its CuddlyNest candidates (name, city/state/country,
-`sessionidSlug`, coordinates, property count) via the autosuggestion API.
-
-| Parameter | Required | Description |
-| --- | --- | --- |
-| `destination` | yes | City / area string, e.g. `"Santa Marta, Colombia"` |
-| `checkin`, `checkout` | no | `YYYY-MM-DD` (echoed for downstream use) |
-| `adults`, `children`, `childAges`, `infants`, `rooms` | no | defaults: 2 / 0 / – / 0 / 1 |
-| `currency` | no | ISO 4217, default `USD` |
-
-**Returns:** `{ query, guests, candidates[], note, openQuestions }`. Enumerating a
-destination's hotels with prices needs a further capture (see [Still uncaptured](#still-uncaptured)).
-
-### `cuddlynest_listing_details`
-
-Get static basics **and** live rooms/pricing for one hotel.
-
-| Parameter | Required | Description |
-| --- | --- | --- |
-| `hotel` | yes | Listing URL **or** numeric `product_id` |
-| `checkin`, `checkout` | for pricing | `YYYY-MM-DD` — required to fetch rooms/prices |
-| `destinationSlug` | no | Overrides the slug derived from the listing page |
-| `adults`, `children`, `childAges`, `infants`, `rooms` | no | defaults: 2 / 0 / – / 0 / 1 |
-| `currency` | no | ISO 4217, default `USD` |
-
-**Returns:** `{ productId, hotelUrl, destinationSlug, guests, staticListing, rooms, notes, openQuestions, … }`.
-`rooms.units[]` is the merged, deduped, price-sorted set of room offers, each with
-`title`, `partnerName`, `unitPrice`, `currency`, `remainingRooms`, `roomSize`,
-`cancellationPolicyType`, `cancellationPolicyText`, `priceBreakdown`, `amenities`,
-`images`. Without an access token, `roomsError` explains what to supply.
+- Node.js 18+
+- A Chromium build for Playwright. `npm install` runs `playwright install
+  chromium` automatically (postinstall); if that is blocked in your
+  environment, run `npx playwright install chromium` once by hand.
 
 ## Installation
-
-Requires [Node.js](https://nodejs.org/) 18+.
 
 ```json
 {
@@ -136,40 +81,91 @@ Requires [Node.js](https://nodejs.org/) 18+.
 }
 ```
 
-To ignore `robots.txt` (listing-page fetches only), add `"--ignore-robots-txt"`
-to `args`. To enable live pricing, add `"--access-token", "eyJ…"` or set
-`CUDDLYNEST_ACCESS_TOKEN` (see [the status section](#the-one-thing-still-needed-the-access-token)).
+Add `"--ignore-robots-txt"` to `args` to bypass `robots.txt` for the
+listing-page fetches. `CUDDLYNEST_SCRAPE_TIMEOUT_MS` (default `35000`) caps how
+long the browser waits for prices to render.
+
+---
+
+## Tools
+
+### `cuddlynest_search`
+
+Resolve a destination to its CuddlyNest candidates via the public autosuggestion
+API — name, city/state/country, coordinates, property count.
+
+| Parameter | Required | Description |
+| --- | --- | --- |
+| `destination` | yes | City / area string, e.g. `"Santa Marta, Colombia"` |
+| `checkin`, `checkout`, `adults`, `children`, `childAges`, `infants`, `rooms`, `currency` | no | echoed back for downstream use |
+
+**Returns:** `{ query, guests, candidates[], note }`. This tool does **not**
+enumerate a destination's hotels — call `cuddlynest_listing_details` for a
+specific hotel.
+
+### `cuddlynest_listing_details`
+
+Static basics **and** rooms/pricing for one hotel.
+
+| Parameter | Required | Description |
+| --- | --- | --- |
+| `hotel` | yes | Listing URL **or** numeric `product_id` (trailing number in the URL) |
+| `checkin`, `checkout` | for pricing | `YYYY-MM-DD` — required to read rooms/prices |
+| `adults`, `children`, `childAges`, `infants`, `rooms` | no | defaults 2 / 0 / – / 0 / 1 |
+| `currency` | no | ISO 4217, default `USD` |
+| `ignoreRobotsText` | no | ignore robots.txt for the static fetch |
+
+**Returns:** `{ productId, hotelUrl, guests, staticListing, staticError, rooms, roomsError, notes }`.
+`rooms.units[]` is the extracted room offers, each with `title`, `partnerName`,
+`unitPrice`, `currency`, `remainingRooms`, `guests`, `cancellationPolicyType`,
+`cancellationPolicyText`, `priceBreakdown`, `roomFilters`. `rooms` also carries
+`fromPrice`, `partnersSeen`, `listingUrl`, `scrapedAt`.
+
+---
 
 ## Development
 
 ```bash
-npm install
-npm run build      # sync-version + tsc
-npm test           # smoke test (stdio) + offline merge/sessionid tests
+npm install          # installs deps + Chromium (postinstall)
+npm run build        # sync-version + tsc -> dist/
+npm run typecheck
+npm test             # offline: smoke test (stdio) + scraper tests
+npm run e2e:sansiraka # ONLINE: real scrape of cuddlynest.com, structural asserts
 npm run watch
 ```
 
-`test-merge.js` runs fully offline against the captured payloads in `fixtures/`.
-`test-extension.js` drives the built server over stdio (the listing-details case
-makes one HTTP request to `cuddlynest.com`).
+- `test-scrape.js` — `buildListingUrl` (pure) + `extractRoomsFromDom` replayed
+  against `fixtures/hotel-sansiraka-2026-10-05.json` (a **real** capture from
+  cuddlynest.com on 2026-09-01: Hotel Sansiraka `4395541`, 2026-10-05→08, 2
+  adults + 1 child age 2, COP — 9 rooms across dida travels / hxpro / ratehawk /
+  rakuten). A local headless Chromium rebuilds the page's DOM+fiber shape from
+  that fixture and checks the extractor reconstructs it — no network.
+- `test-extension.js` — MCP handshake, tool listing, `cuddlynest_search`
+  (hits the autosuggestion API), `cuddlynest_listing_details` product_id parsing.
+- `scripts/e2e-hotel-sansiraka.mjs` — runs a real scrape of the Sansiraka
+  listing and asserts the live result matches the fixture's **structure** (room
+  object shape/keys, non-empty, partner variety). Live prices and the exact
+  partner set drift from the fixture — that's expected.
+
+Last real e2e run (2026-09-01): 7 rooms from dida travels / hxpro / ratehawk /
+hotelplanner; dida travels prices matched the fixture exactly; `rakuten` had no
+availability that run. Structure ✅.
 
 ## Architecture
 
-- **Runtime:** Node.js 18+
-- **Protocol:** MCP over stdio
-- `index.ts` — MCP server, tool schemas, request routing, `robots.txt` handling
-- `cuddlynest.ts` — hotel-URL parsing, `sessionid` construction, static-listing
-  Cheerio parse, result shaping
-- `rooms-ws.ts` — WebSocket client + outgoing frame builder + partial-message
-  accumulation/merge
+- `index.ts` — MCP server, tool schemas, routing, `robots.txt` handling
+- `cuddlynest.ts` — hotel-URL parsing, static-listing `ld+json` parse,
+  destination autosuggestion, result shaping
+- `scrape-listing.ts` — `resolveListingPath`, `buildListingUrl`, `scrapeListing`
+  (headless browser), `extractRoomsFromDom` (React-fiber walk)
 - `util.ts` — generic object/JSON helpers
 
 ## Legal
 
-- This project is **not affiliated with CuddlyNest**. It is an independent tool
-  for retrieving publicly available listing information.
-- Respects `robots.txt` by default for listing-page fetches (override for testing).
-- Be mindful of request frequency.
+- Not affiliated with CuddlyNest. Reads publicly available listing information.
+- Respects `robots.txt` by default for the static listing fetch (override for
+  testing). Be mindful of request frequency — each `cuddlynest_listing_details`
+  call with dates launches a browser and loads one page.
 
 ## License
 

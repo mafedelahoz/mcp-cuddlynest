@@ -9,29 +9,21 @@ startCommand:
         type: boolean
         default: false
         description: If set to true, the server ignores robots.txt rules for listing-page fetches.
-      cuddlynestWsUrl:
-        type: string
-        default: ""
+      scrapeTimeoutMs:
+        type: number
+        default: 35000
         description: >-
-          Override the room-pricing WebSocket base URL (without ?access_token). Defaults
-          to wss://ldp.cuddlynest.com/websocket/ldp_room_groups. Leave blank unless it moves.
-      cuddlynestAccessToken:
-        type: string
-        default: ""
-        description: >-
-          Optional anonymous app JWT for the pricing WebSocket. Leave blank to let the
-          server scrape a fresh one from a CuddlyNest page.
+          Max time (ms) to wait for a listing page's rooms/prices to render in the
+          headless browser.
   commandFunction:
     |-
     (config) => {
       const args = ['dist/index.js'];
       if (config.ignoreRobotsTxt) args.push('--ignore-robots-txt');
       const env = { ...process.env };
-      if (config.cuddlynestWsUrl) env.CUDDLYNEST_WS_URL = config.cuddlynestWsUrl;
-      if (config.cuddlynestAccessToken) env.CUDDLYNEST_ACCESS_TOKEN = config.cuddlynestAccessToken;
+      if (config.scrapeTimeoutMs) env.CUDDLYNEST_SCRAPE_TIMEOUT_MS = String(config.scrapeTimeoutMs);
       return { command: 'node', args, env };
     }
   exampleConfig:
     ignoreRobotsTxt: false
-    cuddlynestWsUrl: ""
-    cuddlynestAccessToken: ""
+    scrapeTimeoutMs: 35000

@@ -1,26 +1,20 @@
-// CuddlyNest-specific request/response plumbing.
+// CuddlyNest-specific helpers that don't need a browser:
+//   - parsing a hotel URL / product_id
+//   - the static listing page (schema.org ld+json / OG tags) for the non-priced
+//     basics: name, location, description, amenities, images
+//   - destination autosuggestion (public, no auth)
+//   - shaping scraped room offers into a compact tool result
 //
-// Unlike the Airbnb server this repo was seeded from, CuddlyNest does NOT serve
-// pricing or room availability in its static HTML, and it is not a plain REST/XHR
-// call either. Live room + price data arrives over a WebSocket as a stream of
-// `Connection.Message` events (see rooms-ws.ts). The static HTML is still useful
-// for the non-priced basics (name, location, description, amenities, images) and
-// for the city/state/country used to build the destination slug.
-//
-// This module owns:
-//   - parsing a CuddlyNest hotel URL / product_id into the canonical product_id
-//   - building the `sessionid` string + destination slug the WS layer keys on
-//   - fetching + parsing the static listing page with Cheerio
-//   - resolving a destination string via CuddlyNest's autosuggestion API
-//   - obtaining the anonymous app access token the WS endpoint requires
-//   - shaping the accumulated unit_details into a compact tool result
+// Room prices/availability come from scrape-listing.ts (a real headless-browser
+// read of the public listing page). Nothing here talks to CuddlyNest's private
+// WebSocket or auth endpoints.
 
 import fetch from "node-fetch";
 import * as cheerio from "cheerio";
+import type { RoomOffer } from "./scrape-listing.js";
 
 export const BASE_URL = "https://www.cuddlynest.com";
 export const AUTOSUGGEST_URL = "https://autosuggestion-2-0.cuddlynest.com/";
-export const JWT_ISSUER = "https://jwt-issuer.cuddlynest.com";
 
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
@@ -54,108 +48,6 @@ export function parseHotelInput(hotelUrlOrId: string): { productId: string; sour
 }
 
 // ---------------------------------------------------------------------------
-// Destination slug
-// ---------------------------------------------------------------------------
-
-let regionNames: Intl.DisplayNames | undefined;
-/**
- * Expand a 2-letter ISO country code to its English name ("CO" -> "Colombia").
- * The listing page's schema.org address carries the ISO code, but the sessionid
- * slug is built from the full country name ("...MagdalenaColombia"). Anything
- * that isn't a bare 2-letter code is returned unchanged.
- */
-export function normalizeCountry(country?: string): string | undefined {
-  if (!country) return country;
-  if (!/^[A-Za-z]{2}$/.test(country.trim())) return country;
-  try {
-    regionNames ??= new Intl.DisplayNames(["en"], { type: "region" });
-    return regionNames.of(country.trim().toUpperCase()) || country;
-  } catch {
-    return country;
-  }
-}
-
-/**
- * The destination component of the sessionid is built CLIENT-SIDE by
- * concatenating name + state + country with no separators and stripping every
- * non-alphanumeric character. It is NOT the `slug` field the autosuggestion API
- * returns (that one is "santa-marta").
- *
- *   ("Santa Marta", "Magdalena", "Colombia") -> "SantaMartaMagdalenaColombia"
- *
- * Confirmed against a live capture. A 2-letter country code is expanded first
- * (the listing page gives "CO", the slug wants "Colombia").
- */
-export function buildDestinationSlug(name?: string, state?: string, country?: string): string {
-  return [name, state, normalizeCountry(country)]
-    .filter(Boolean)
-    .join("")
-    .replace(/[^A-Za-z0-9]/g, "");
-}
-
-// ---------------------------------------------------------------------------
-// sessionid construction
-// ---------------------------------------------------------------------------
-
-export interface RoomGroupsSessionParams {
-  /** e.g. "SantaMartaMagdalenaColombia" — see buildDestinationSlug(). Required
-   *  (the client always sends a non-empty slug, even on a direct hotel deep-link). */
-  destinationSlug: string;
-  hotelProductId: string;
-  checkin: string; // YYYY-MM-DD
-  checkout: string; // YYYY-MM-DD
-  adults: number;
-  children: number;
-  infants: number;
-  rooms: number;
-  currency: string; // ISO 4217, e.g. "COP", "USD"
-  propertyType?: string; // observed: "Hotel"
-}
-
-/**
- * Build the `room_groups_` sessionid the WebSocket layer uses to correlate a
- * request with its streamed `Connection.Message` responses.
- *
- *   room_groups_ : {destination_slug} : {children} : {infants} : {adults}
- *                : {rooms} : {property_type} : viewport : {currency}
- *                : {hotel_product_id} : {checkin} : {checkout} : {currency_lowercase}
- *
- *   room_groups_:SantaMartaMagdalenaColombia:0:0:2:1:Hotel:viewport:COP:4395541:2026-10-05:2026-10-08:cop
- *
- * Field order children:infants:adults:rooms confirmed by a live A/B capture.
- */
-export function buildRoomGroupsSessionId(p: RoomGroupsSessionParams): string {
-  const propertyType = p.propertyType || "Hotel";
-  return [
-    "room_groups_",
-    p.destinationSlug,
-    p.children,
-    p.infants,
-    p.adults,
-    p.rooms,
-    propertyType,
-    "viewport",
-    p.currency.toUpperCase(),
-    p.hotelProductId,
-    p.checkin,
-    p.checkout,
-    p.currency.toLowerCase(),
-  ].join(":");
-}
-
-// Remaining soft spots, surfaced in every tool response.
-export const OPEN_QUESTIONS = [
-  "ACCESS TOKEN: the anonymous app JWT for the pricing WebSocket is minted in-browser " +
-    "at bootstrap and is NOT present in the server-rendered HTML (scrape confirmed empty). " +
-    "Until the token-issuance call (issuer https://jwt-issuer.cuddlynest.com) is captured, " +
-    "supply a token via CUDDLYNEST_ACCESS_TOKEN / --access-token (it lasts ~1h).",
-  "The WS wire frame is built from the payload the page hands its Web Worker; it has " +
-    "not been confirmed byte-for-byte on the wire (that happens inside the Worker).",
-  "Destination-level hotel enumeration (search with prices) is not captured — " +
-    "cuddlynest_search only resolves the destination + slug.",
-];
-
-// ---------------------------------------------------------------------------
 // HTTP helper
 // ---------------------------------------------------------------------------
 
@@ -180,113 +72,34 @@ async function httpGet(url: string, accept: string, timeout = 30000): Promise<st
 }
 
 // ---------------------------------------------------------------------------
-// Anonymous app access token
+// Destination autosuggestion (public, no auth)
 // ---------------------------------------------------------------------------
 
-interface DecodedJwt {
-  header: any;
-  payload: any;
-  expSeconds?: number;
-}
-
-export function decodeJwt(token: string): DecodedJwt | null {
-  const parts = token.split(".");
-  if (parts.length !== 3) return null;
+let regionNames: Intl.DisplayNames | undefined;
+/** Expand a bare 2-letter ISO country code to its English name ("CO" -> "Colombia"). */
+export function normalizeCountry(country?: string): string | undefined {
+  if (!country) return country;
+  if (!/^[A-Za-z]{2}$/.test(country.trim())) return country;
   try {
-    const b64 = (s: string) =>
-      Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
-    const header = JSON.parse(b64(parts[0]));
-    const payload = JSON.parse(b64(parts[1]));
-    return { header, payload, expSeconds: typeof payload.exp === "number" ? payload.exp : undefined };
+    regionNames ??= new Intl.DisplayNames(["en"], { type: "region" });
+    return regionNames.of(country.trim().toUpperCase()) || country;
   } catch {
-    return null;
+    return country;
   }
 }
-
-export function jwtIsFresh(token: string, skewSeconds = 60): boolean {
-  const decoded = decodeJwt(token);
-  if (!decoded?.expSeconds) return false;
-  return decoded.expSeconds - skewSeconds > Date.now() / 1000;
-}
-
-/**
- * Get the anonymous app token the WS endpoint wants in `?access_token=`.
- *
- * 1. explicit token (env/arg) if still fresh
- * 2. scrape a fresh RS256 JWT issued by jwt-issuer.cuddlynest.com out of a
- *    CuddlyNest page's HTML/JSON (best effort — the token is embedded at bootstrap)
- * 3. null -> caller surfaces a needs_capture for the token-issuance call
- */
-export async function getAccessToken(
-  explicit: string | undefined,
-  pageUrl: string,
-  log: (l: "info" | "warn" | "error", m: string, d?: any) => void = () => {},
-): Promise<{ token: string | null; source: "explicit" | "scraped" | "none"; note?: string }> {
-  if (explicit && jwtIsFresh(explicit)) return { token: explicit, source: "explicit" };
-  if (explicit && !jwtIsFresh(explicit)) {
-    log("warn", "Supplied CUDDLYNEST_ACCESS_TOKEN is expired or unparseable; trying to scrape one");
-  }
-
-  try {
-    const html = await httpGet(
-      pageUrl,
-      "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    );
-    // RS256 JWTs start with the base64url of {"alg":"RS256"...
-    const candidates = html.match(/eyJhbGciOiJS[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g) || [];
-    for (const c of candidates) {
-      const decoded = decodeJwt(c);
-      if (
-        decoded?.payload?.iss === JWT_ISSUER &&
-        decoded.header?.alg === "RS256" &&
-        jwtIsFresh(c)
-      ) {
-        log("info", "Scraped a fresh app access token from page HTML", {
-          exp: decoded.expSeconds,
-          sub: decoded.payload?.sub,
-        });
-        return { token: c, source: "scraped" };
-      }
-    }
-    log("warn", "No fresh jwt-issuer.cuddlynest.com token found in page HTML", {
-      candidatesSeen: candidates.length,
-    });
-  } catch (e) {
-    log("warn", "Token scrape failed", { error: e instanceof Error ? e.message : String(e) });
-  }
-
-  return {
-    token: null,
-    source: "none",
-    note:
-      "Could not obtain a CuddlyNest app access token. Supply one via " +
-      "CUDDLYNEST_ACCESS_TOKEN (env) / --access-token, or capture the token-issuance " +
-      `call fired during page bootstrap (issuer ${JWT_ISSUER}).`,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Destination autosuggestion
-// ---------------------------------------------------------------------------
 
 export interface DestinationCandidate {
   name?: string;
   city?: string;
   state?: string;
   country?: string;
-  autosuggestSlug?: string; // the API's own "slug" — NOT the sessionid slug
-  sessionidSlug: string; // what buildRoomGroupsSessionId() wants
+  slug?: string; // the autosuggestion API's own slug, e.g. "santa-marta"
   type?: string;
   lat?: number;
   lon?: number;
   propertyCount?: number;
 }
 
-/**
- * Resolve a free-text destination via CuddlyNest's autosuggestion API
- * (no auth). Returns candidates newest→best as the API orders them, each with
- * the client-side-built `sessionidSlug`.
- */
 export async function resolveDestinations(query: string): Promise<DestinationCandidate[]> {
   const url = `${AUTOSUGGEST_URL}?s=${encodeURIComponent(query)}&city=&state=&country=`;
   const body = await httpGet(url, "application/json");
@@ -304,9 +117,8 @@ export async function resolveDestinations(query: string): Promise<DestinationCan
       name: s.name,
       city: s.city || undefined,
       state: s.state || undefined,
-      country: s.country || undefined,
-      autosuggestSlug: s.slug || undefined,
-      sessionidSlug: buildDestinationSlug(s.name, s.state, s.country),
+      country: normalizeCountry(s.country || undefined),
+      slug: s.slug || undefined,
       type: s.type,
       lat: s.location?.lat,
       lon: s.location?.lon,
@@ -315,7 +127,7 @@ export async function resolveDestinations(query: string): Promise<DestinationCan
 }
 
 // ---------------------------------------------------------------------------
-// Static listing page (Cheerio) — non-priced basics + location parts
+// Static listing page (Cheerio) — non-priced basics
 // ---------------------------------------------------------------------------
 
 export interface StaticListing {
@@ -338,12 +150,9 @@ export interface StaticListing {
 }
 
 /**
- * Best-effort extraction of the static, non-priced listing basics + the
- * city/state/country needed to build the destination slug.
- *
- * ⚠️ The exact DOM of a CuddlyNest hotel page is not fully mapped. This reads the
- * portable things a hotel page exposes: schema.org ld+json, Open Graph / meta
- * tags. When none is found, `degraded: true`.
+ * Best-effort extraction of the static, non-priced listing basics. Reads
+ * schema.org ld+json and Open Graph / meta tags. `degraded: true` when no
+ * Hotel block is found.
  */
 export async function fetchStaticListing(
   productId: string,
@@ -452,38 +261,26 @@ export interface ShapedUnit {
   currency: string;
   remainingRooms: number;
   guests?: number;
-  roomSize?: string;
   cancellationPolicyType?: string;
   cancellationPolicyText?: string[];
   priceBreakdown?: any;
-  amenities: string[];
-  images: string[];
-  availableRoomGroups: string[];
+  roomFilters: string[];
 }
 
-export function shapeUnit(u: any, fallbackCurrency: string): ShapedUnit {
-  const cpCurrency =
-    u?.cancellation_policy?.partner_cp?.[0]?.currency ||
-    u?.price_breakdown?.total?.currency ||
-    fallbackCurrency;
+/** A scraped RoomOffer -> compact shape for the tool result. */
+export function shapeUnit(u: RoomOffer, requestedCurrency: string): ShapedUnit {
   return {
-    title: u?.title ?? u?.old_title ?? "Room",
+    title: u?.title ?? "Room",
     partnerName: u?.partner_name ?? "unknown",
     unitPrice: Number(u?.unit_price ?? u?.price_breakdown?.total?.amount ?? 0),
-    currency: cpCurrency,
+    currency: requestedCurrency,
     remainingRooms: Number(u?.remaining_rooms ?? 0),
     guests: u?.guests != null ? Number(u.guests) : undefined,
-    roomSize:
-      u?.room_size && u?.room_size_unit ? `${u.room_size} ${u.room_size_unit}` : undefined,
-    cancellationPolicyType: u?.cancellation_policy_type ?? u?.cancellation_policy?.type,
+    cancellationPolicyType: u?.cancellation_policy?.type,
     cancellationPolicyText: Array.isArray(u?.cancellation_policy?.text)
       ? u.cancellation_policy.text
       : undefined,
     priceBreakdown: u?.price_breakdown,
-    amenities: Array.isArray(u?.amenities)
-      ? u.amenities.map((a: any) => a?.name).filter(Boolean)
-      : [],
-    images: Array.isArray(u?.images) ? u.images : [],
-    availableRoomGroups: u?.room_groups ? Object.keys(u.room_groups) : [],
+    roomFilters: Array.isArray(u?.room_filters) ? u.room_filters : [],
   };
 }

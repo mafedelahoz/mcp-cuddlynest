@@ -82,10 +82,8 @@ class MCPTester {
     if (!("candidates" in content)) throw new Error("no candidates field");
     if (Array.isArray(content.candidates) && content.candidates.length) {
       const c = content.candidates[0];
-      console.log(`   candidate: ${c.name} -> slug ${c.sessionidSlug}`);
-      if (c.sessionidSlug && /[^A-Za-z0-9]/.test(c.sessionidSlug)) {
-        throw new Error("sessionidSlug should be alphanumeric");
-      }
+      console.log(`   candidate: ${c.name} (${[c.city, c.state, c.country].filter(Boolean).join(", ")})`);
+      if (!c.name) throw new Error("candidate missing name");
     } else {
       console.log("   ⚠️  no candidates returned (autosuggestion unreachable?) — non-fatal");
     }
