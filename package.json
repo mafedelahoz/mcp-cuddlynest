@@ -1,32 +1,46 @@
 {
-  "name": "@cuddlynest/mcp-server-cuddlynest",
+  "name": "cuddlynest-mcp",
   "version": "0.1.0",
   "description": "MCP server for CuddlyNest hotel search and listing details (rooms, prices, availability from the public listing page)",
   "license": "MIT",
   "type": "module",
+  "mcpName": "io.github.mafedelahoz/cuddlynest-mcp",
+  "homepage": "https://github.com/mafedelahoz/mcp-cuddlynest#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mafedelahoz/mcp-cuddlynest.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mafedelahoz/mcp-cuddlynest/issues"
+  },
   "keywords": [
     "cuddlynest",
     "hotel",
+    "hotels",
     "travel",
-    "mcp"
+    "mcp",
+    "model-context-protocol",
+    "modelcontextprotocol"
   ],
   "publishConfig": {
     "access": "public"
   },
   "bin": {
-    "mcp-server-cuddlynest": "dist/index.js"
+    "cuddlynest-mcp": "dist/index.js"
   },
   "files": [
     "dist",
     "sync-version.js",
+    "server.json",
+    "manifest.json",
     "!dist/*.mcpb"
   ],
   "scripts": {
     "build": "node sync-version.js && tsc && shx chmod +x dist/*.js",
     "postinstall": "playwright install chromium",
-    "pack": "npm run build && npx @anthropic-ai/mcpb pack . dist/mcp-server-cuddlynest.mcpb",
+    "pack": "npm run build && npx @anthropic-ai/mcpb pack . dist/cuddlynest-mcp.mcpb",
     "prepare": "npm run build",
-    "version": "node sync-version.js && git add manifest.json",
+    "version": "node sync-version.js && git add manifest.json server.json",
     "typecheck": "tsc --noEmit",
     "pretest": "npm run build",
     "test": "node test-extension.js && node test-scrape.js",

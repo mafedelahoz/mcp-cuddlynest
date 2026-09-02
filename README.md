@@ -61,7 +61,7 @@ unit) is the reliable figure.
   "mcpServers": {
     "cuddlynest": {
       "command": "npx",
-      "args": ["-y", "@cuddlynest/mcp-server-cuddlynest"]
+      "args": ["-y", "cuddlynest-mcp"]
     }
   }
 }
