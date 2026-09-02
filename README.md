@@ -6,13 +6,6 @@ availability and cancellation policies**.
 
 Read-only by design: search and listing details only. No booking, no payment.
 
-> Seeded from the MCP-server scaffolding of
-> [`openbnb-org/mcp-server-airbnb`](https://github.com/openbnb-org/mcp-server-airbnb)
-> (MIT). The MCP transport/registration layer is reused; the data-fetching layer
-> is a full rewrite. The original copyright notice is retained in
-> [LICENSE](LICENSE) per the MIT terms.
-
----
 
 ## How it gets the data
 
@@ -26,13 +19,6 @@ public listing page in a headless browser (Playwright/Chromium), lets *the
 page's own JavaScript* load the rooms, waits for them to render, and reads the
 result out of the DOM.
 
-**Scope — public content only.** This is deliberately aligned with what the tech
-team recommended: read the same public page a visitor sees, using the same
-transport already used for amenities/images/location. The server does **not**
-call CuddlyNest's internal WebSocket, does **not** touch their auth/token
-endpoints, and carries **no access token**. An earlier draft that minted an
-anonymous token and spoke to the private WebSocket directly was dropped — nothing
-established that as authorized.
 
 | Data | Source |
 | --- | --- |
@@ -147,9 +133,6 @@ npm run watch
   object shape/keys, non-empty, partner variety). Live prices and the exact
   partner set drift from the fixture — that's expected.
 
-Last real e2e run (2026-09-01): 7 rooms from dida travels / hxpro / ratehawk /
-hotelplanner; dida travels prices matched the fixture exactly; `rakuten` had no
-availability that run. Structure ✅.
 
 ## Architecture
 
@@ -160,12 +143,6 @@ availability that run. Structure ✅.
   (headless browser), `extractRoomsFromDom` (React-fiber walk)
 - `util.ts` — generic object/JSON helpers
 
-## Legal
-
-- Not affiliated with CuddlyNest. Reads publicly available listing information.
-- Respects `robots.txt` by default for the static listing fetch (override for
-  testing). Be mindful of request frequency — each `cuddlynest_listing_details`
-  call with dates launches a browser and loads one page.
 
 ## License
 

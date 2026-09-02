@@ -233,9 +233,15 @@ export interface ScrapeOptions {
   /**
    * After the first price renders, keep polling until the extracted room count
    * stops growing (suppliers stream in at different speeds). Give up after this
-   * long. Default 12000ms.
+   * long. Default 15000ms.
    */
   settleTimeoutMs?: number;
+  /**
+   * Never return before this long after the first price, even if the room count
+   * already looks stable — slow suppliers can arrive several seconds after the
+   * first. Default 6000ms.
+   */
+  minSettleMs?: number;
   /** Executable path override for sandboxed environments. */
   executablePath?: string;
   headless?: boolean;
@@ -252,7 +258,7 @@ export async function scrapeListing(
   options: ScrapeOptions = {},
 ): Promise<ListingSearchResult> {
   const url = buildListingUrl(params);
-  const { timeoutMs = 30000, settleTimeoutMs = 12000 } = options;
+  const { timeoutMs = 30000, settleTimeoutMs = 15000, minSettleMs = 6000 } = options;
   const log = options.log ?? (() => {});
 
   let browser: Browser | undefined;
@@ -307,8 +313,9 @@ export async function scrapeListing(
     // stop once it has been stable for two consecutive polls (or we hit the
     // settle budget). Beats a fixed sleep, which either cuts slow partners off
     // or wastes time when everything is already in.
-    const pollMs = 900;
-    const settleDeadline = Date.now() + settleTimeoutMs;
+    const pollMs = 1000;
+    const started = Date.now();
+    const settleDeadline = started + settleTimeoutMs;
     let stableFor = 0;
     let lastCount = -1;
     while (Date.now() < settleDeadline) {
@@ -340,13 +347,11 @@ export async function scrapeListing(
         }
         return keys.size;
       });
-      if (count === lastCount) {
-        stableFor++;
-        if (stableFor >= 2) break;
-      } else {
-        stableFor = 0;
-      }
+      if (count === lastCount) stableFor++;
+      else stableFor = 0;
       lastCount = count;
+      // Stable for 3 polls AND past the minimum floor -> everything's in.
+      if (stableFor >= 3 && Date.now() - started >= minSettleMs) break;
     }
 
     const { fromPriceText, rooms } = await page.evaluate(extractRoomsFromDom);
