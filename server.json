@@ -1,5 +1,5 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.mafedelahoz/cuddlynest-mcp",
   "description": "Search CuddlyNest hotels and read rooms, prices, availability and cancellation policies",
   "repository": {
@@ -29,7 +29,8 @@
         {
           "name": "CUDDLYNEST_SCRAPE_TIMEOUT_MS",
           "description": "Max ms to wait for a listing page's rooms/prices to render (default 35000)",
-          "isRequired": false
+          "isRequired": false,
+          "format": "string"
         }
       ]
     }
