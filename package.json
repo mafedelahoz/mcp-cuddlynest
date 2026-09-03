@@ -1,6 +1,6 @@
 {
   "name": "cuddlynest-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP server for CuddlyNest hotel search and listing details (rooms, prices, availability from the public listing page)",
   "license": "MIT",
   "type": "module",

@@ -260,34 +260,41 @@ async function handleSearch(params: any) {
   // "Cartagena, Chile" above "Cartagena, Colombia").
   const anchor = pickAnchorPlace(destination, places);
 
-  // Best effort: widen the hotel list with the city geo-page (~60 hotels),
-  // but only if the geo page's own location metadata matches the anchor.
+  // Best effort, time-boxed: widen the hotel list with the city geo-page
+  // (~60-250 hotels), but only if the geo page's own location metadata matches
+  // the anchor. Bounded so a slow geo page never stalls the search.
   let hotelSource: "autosuggest" | "autosuggest+geopage" = "autosuggest";
   let city: any;
   if (fullCityList && hotels.length > 0) {
     try {
-      const geoIds = [
-        ...new Set(
-          (await Promise.all(hotels.slice(0, 6).map((h) => resolveCityGeoId(h.productId)))).filter(
-            (id): id is string => !!id,
+      const enrich = (async () => {
+        const geoIds = [
+          ...new Set(
+            (
+              await Promise.all(hotels.slice(0, 4).map((h) => resolveCityGeoId(h.productId)))
+            ).filter((id): id is string => !!id),
           ),
-        ),
-      ].slice(0, 3);
-      for (const geoId of geoIds) {
-        const gp = await fetchGeopageHotels(geoId);
-        if (gp.hotels.length && geopageMatchesPlace(gp, anchor, destination)) {
-          hotels = mergeHotelCandidates(hotels, gp.hotels);
-          hotelSource = "autosuggest+geopage";
-          city = {
-            label: gp.cityLabel,
-            city: gp.city,
-            state: gp.state,
-            country: gp.country,
-            totalProperties: gp.propertyCount,
-          };
-          break;
+        ].slice(0, 2);
+        for (const geoId of geoIds) {
+          const gp = await fetchGeopageHotels(geoId);
+          if (gp.hotels.length && geopageMatchesPlace(gp, anchor, destination)) {
+            hotels = mergeHotelCandidates(hotels, gp.hotels);
+            hotelSource = "autosuggest+geopage";
+            city = {
+              label: gp.cityLabel,
+              city: gp.city,
+              state: gp.state,
+              country: gp.country,
+              totalProperties: gp.propertyCount,
+            };
+            return;
+          }
         }
-      }
+      })();
+      await Promise.race([
+        enrich,
+        new Promise((_, rej) => setTimeout(() => rej(new Error("geo-page budget exceeded")), 12000)),
+      ]);
     } catch (e) {
       log("warn", "geo-page enrichment skipped", {
         error: e instanceof Error ? e.message : String(e),

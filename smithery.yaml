@@ -1,29 +1,22 @@
-# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+# Smithery configuration — https://smithery.ai/docs/config
+#
+# Two ways to list this server on Smithery:
+#
+#   A. Register the already-hosted endpoint (free, recommended): Smithery →
+#      "Add a remote server by URL" → paste  https://<host>/mcp
+#      (see deploy/hf-space/DEPLOY.md). No build on Smithery's side.
+#
+#   B. Let Smithery build & host the container from this config:
 
+runtime: container
+build:
+  dockerfile: Dockerfile
+  dockerBuildPath: .
 startCommand:
-  type: stdio
+  type: http
+  # The server reads configuration from process env at start (CUDDLYNEST_* /
+  # IGNORE_ROBOTS_TXT), not per-session, so there is no session configSchema.
   configSchema:
     type: object
-    properties:
-      ignoreRobotsTxt:
-        type: boolean
-        default: false
-        description: If set to true, the server ignores robots.txt rules for listing-page fetches.
-      scrapeTimeoutMs:
-        type: number
-        default: 35000
-        description: >-
-          Max time (ms) to wait for a listing page's rooms/prices to render in the
-          headless browser.
-  commandFunction:
-    |-
-    (config) => {
-      const args = ['dist/index.js'];
-      if (config.ignoreRobotsTxt) args.push('--ignore-robots-txt');
-      const env = { ...process.env };
-      if (config.scrapeTimeoutMs) env.CUDDLYNEST_SCRAPE_TIMEOUT_MS = String(config.scrapeTimeoutMs);
-      return { command: 'node', args, env };
-    }
-  exampleConfig:
-    ignoreRobotsTxt: false
-    scrapeTimeoutMs: 35000
+    properties: {}
+  exampleConfig: {}

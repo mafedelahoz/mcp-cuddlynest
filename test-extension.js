@@ -12,7 +12,7 @@ import { dirname, join } from "path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SERVER_PATH = join(__dirname, "dist", "index.js");
-const TEST_TIMEOUT = 20000;
+const TEST_TIMEOUT = 45000; // live-network calls: search does autosuggest + geo-page
 
 class MCPTester {
   constructor() {

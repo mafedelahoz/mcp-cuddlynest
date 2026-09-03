@@ -3,7 +3,7 @@
   "manifest_version": "0.3",
   "name": "cuddlynest-mcp",
   "display_name": "CuddlyNest Search & Listings",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Search CuddlyNest hotels and get listing details including room prices and availability",
   "long_description": "An MCP server for searching CuddlyNest hotels and retrieving listing details. Static basics (name, location, description, amenities, images) are read from the listing page's structured data; room options, prices, availability and cancellation policies are read from the public listing page rendered in a headless browser (Playwright/Chromium) — the same content any visitor sees, with no access to internal APIs or auth tokens. Read-only: search and listing details only, no booking or payment. Respects robots.txt by default with an option to override for testing.",
   "author": {

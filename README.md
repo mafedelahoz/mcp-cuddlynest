@@ -99,6 +99,9 @@ The `Dockerfile` defaults to this mode (`MCP_TRANSPORT=http`, `PORT=8080`). Ther
 is no auth layer yet — put it behind a gateway, or see
 [Toward a hosted / directory-listed server](#toward-a-hosted--directory-listed-server).
 
+A ready-to-push **free host** (Hugging Face Space, Docker) lives in
+[`deploy/hf-space/`](deploy/hf-space/) — see its `DEPLOY.md`.
+
 ---
 
 ## Tools
@@ -191,13 +194,14 @@ Listing in **claude.ai's Connectors Directory** (and equivalents) needs a hosted
 | Requirement | State |
 | --- | --- |
 | Streamable HTTP transport | ✅ `--http` / `MCP_TRANSPORT=http` |
-| Container image | ✅ `Dockerfile` (HTTP by default, `EXPOSE 8080`) |
+| Container image | ✅ `Dockerfile` + a free-host recipe in `deploy/hf-space/` |
 | Tool annotations (`title`, `readOnlyHint`) | ✅ both tools |
 | Published npm package + MCP registry entry | ✅ |
-| Hosted at a stable HTTPS URL | ☐ needs infra — the per-request headless browser (~15 s, ~500 MB image) rules out most serverless; use a small always-on container |
-| OAuth 2.0 (or a documented no-auth stance for read-only public data) | ☐ |
-| Public privacy policy at a live URL | ☐ **hard requirement — missing = auto-reject** |
-| Public docs page + 3 example prompts + reviewer demo account | ☐ |
+| Search returns hotels (usable tool surface) | ✅ |
+| Hosted at a stable HTTPS URL | ◑ `deploy/hf-space/` (free HF Space) — needs the deploy step |
+| Public privacy policy at a live URL | ✅ [cuddlynest.com/privacy-policy](https://www.cuddlynest.com/privacy-policy) already exists |
+| OAuth 2.0 (or a documented no-auth stance for read-only public data) | ☐ decide: no-auth vs optional API key |
+| Public docs page + 3 example prompts + reviewer demo account | ☐ draftable now |
 | Submitted by the resource owner (CuddlyNest) from a Team/Enterprise org | ☐ the connector reads cuddlynest.com — Anthropic requires the owner to submit |
 
 See Anthropic's [Connectors Directory submission guide](https://claude.com/docs/connectors/building/submission).
