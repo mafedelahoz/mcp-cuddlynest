@@ -1,5 +1,8 @@
 # CuddlyNest Search & Listings — MCP Server
 
+[![npm](https://img.shields.io/npm/v/cuddlynest-mcp)](https://www.npmjs.com/package/cuddlynest-mcp)
+[![MCP Registry](https://img.shields.io/badge/MCP_Registry-io.github.mafedelahoz%2Fcuddlynest--mcp-blue)](https://registry.modelcontextprotocol.io/v0/servers?search=cuddlynest)
+
 A Model Context Protocol (MCP) server for searching [CuddlyNest](https://www.cuddlynest.com)
 hotels and retrieving listing details, including **room options, prices,
 availability and cancellation policies**.
@@ -56,6 +59,10 @@ unit) is the reliable figure.
 
 ## Installation
 
+Published as [`cuddlynest-mcp`](https://www.npmjs.com/package/cuddlynest-mcp) on
+npm and listed in the [official MCP registry](https://registry.modelcontextprotocol.io/v0/servers?search=cuddlynest)
+as `io.github.mafedelahoz/cuddlynest-mcp`.
+
 ```json
 {
   "mcpServers": {
@@ -70,6 +77,11 @@ unit) is the reliable figure.
 Add `"--ignore-robots-txt"` to `args` to bypass `robots.txt` for the
 listing-page fetches. `CUDDLYNEST_SCRAPE_TIMEOUT_MS` (default `35000`) caps how
 long the browser waits for prices to render.
+
+An MCPB bundle (`.mcpb`) for Claude Desktop is attached to each
+[GitHub release](https://github.com/mafedelahoz/mcp-cuddlynest/releases) — note it
+does **not** bundle Chromium, so run `npx playwright install chromium` once after
+installing it that way.
 
 ---
 
