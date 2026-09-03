@@ -71,21 +71,26 @@ class MCPTester {
   }
 
   async testSearch() {
-    console.log("\n🔍 cuddlynest_search (destination resolution)...");
+    console.log("\n🔍 cuddlynest_search (destination + hotels)...");
     const res = await this.sendRequest("tools/call", {
       name: "cuddlynest_search",
-      arguments: { destination: "Santa Marta, Colombia", adults: 2 },
+      arguments: { destination: "Cartagena, Colombia", adults: 2 },
     });
     if (res.error) throw new Error(res.error.message);
     const content = JSON.parse(res.result.content[0].text);
-    if (content.query !== "Santa Marta, Colombia") throw new Error("query not echoed");
-    if (!("candidates" in content)) throw new Error("no candidates field");
-    if (Array.isArray(content.candidates) && content.candidates.length) {
-      const c = content.candidates[0];
-      console.log(`   candidate: ${c.name} (${[c.city, c.state, c.country].filter(Boolean).join(", ")})`);
-      if (!c.name) throw new Error("candidate missing name");
+    if (content.query !== "Cartagena, Colombia") throw new Error("query not echoed");
+    if (!Array.isArray(content.hotels)) throw new Error("no hotels array");
+    if (!Array.isArray(content.places)) throw new Error("no places array");
+    if (content.hotels.length) {
+      const h = content.hotels[0];
+      console.log(
+        `   ${content.hotelCount} hotels (${content.hotelSource})` +
+          (content.city?.city ? ` in ${content.city.city}` : "") +
+          ` — top: ${h.name} ★${h.starRating ?? "?"} [pid ${h.productId}]`,
+      );
+      if (!h.productId || !h.url) throw new Error("hotel missing productId/url");
     } else {
-      console.log("   ⚠️  no candidates returned (autosuggestion unreachable?) — non-fatal");
+      console.log("   ⚠️  no hotels returned (autosuggestion unreachable?) — non-fatal");
     }
     return true;
   }

@@ -27,7 +27,9 @@ result out of the DOM.
 | --- | --- |
 | Name, description, address, coordinates, star rating, amenities, images | Listing page `schema.org` `ld+json` + Open Graph tags (`cuddlynest.ts`) |
 | Room title, partner, `unit_price`, `remaining_rooms`, `price_breakdown`, `cancellation_policy` (incl. `.text`), `room_filters` | Rendered listing page DOM, via a React-fiber walk (`scrape-listing.ts`) |
-| Destination → city/state/country/coords/slug | `autosuggestion-2-0.cuddlynest.com` (public, no auth) |
+| Destination → place candidates + top hotels | `autosuggestion-2-0.cuddlynest.com` (public, no auth) |
+| Destination → broader city hotel list (~60–250) | `discovery-pages.cuddlynest.com/fetch_geopage/<ct-id>` (public); `<ct-id>` recovered from a hotel's product-detail breadcrumbs |
+| `product_id` → name / city / breadcrumbs | `ldp-2-0-product-details.cuddlynest.com/api/v1/productDetail` (public) |
 | `product_id` → canonical listing path | `/hotel/-<id>` server redirect |
 
 ### The DOM extraction, and how it breaks
@@ -83,23 +85,47 @@ An MCPB bundle (`.mcpb`) for Claude Desktop is attached to each
 does **not** bundle Chromium, so run `npx playwright install chromium` once after
 installing it that way.
 
+### Remote / Streamable HTTP
+
+Default transport is stdio. For a hosted deployment, run it over Streamable HTTP:
+
+```bash
+node dist/index.js --http 8080      # or: MCP_TRANSPORT=http PORT=8080 node dist/index.js
+#   POST  http://<host>:8080/mcp    — JSON-RPC (stateless, no sessions)
+#   GET   http://<host>:8080/health — liveness
+```
+
+The `Dockerfile` defaults to this mode (`MCP_TRANSPORT=http`, `PORT=8080`). There
+is no auth layer yet — put it behind a gateway, or see
+[Toward a hosted / directory-listed server](#toward-a-hosted--directory-listed-server).
+
 ---
 
 ## Tools
 
+Both tools are annotated `readOnlyHint: true` — they never write, book, or pay.
+
 ### `cuddlynest_search`
 
-Resolve a destination to its CuddlyNest candidates via the public autosuggestion
-API — name, city/state/country, coordinates, property count.
+Search a destination and the top hotels there, from public CuddlyNest APIs
+(`autosuggestion-2-0` for the fuzzy match, `discovery-pages` geo pages for the
+broader city list). Prices are **not** here — pass a hotel's `productId` to
+`cuddlynest_listing_details`.
 
 | Parameter | Required | Description |
 | --- | --- | --- |
-| `destination` | yes | City / area string, e.g. `"Santa Marta, Colombia"` |
+| `destination` | yes | City / area string, e.g. `"Cartagena, Colombia"` |
+| `hotelsOnly` | no | Omit the `places[]` block (default `false`) |
+| `fullCityList` | no | Also pull the geo-page city list (~60–250 hotels) when it can be resolved and verified against the destination — a few extra requests (default `true`) |
 | `checkin`, `checkout`, `adults`, `children`, `childAges`, `infants`, `rooms`, `currency` | no | echoed back for downstream use |
 
-**Returns:** `{ query, guests, candidates[], note }`. This tool does **not**
-enumerate a destination's hotels — call `cuddlynest_listing_details` for a
-specific hotel.
+**Returns:** `{ query, guests, places[], city, hotelSource, hotelCount, hotels[], note }`.
+Each `hotels[]` entry: `productId`, `name`, `url`, `slug`, `propertyType`,
+`starRating`, `guestRating` (/10) + `guestRatingText`, `reviewCount`, and — from
+the geo page — `images[]`, `distanceFromCenterKm`, `featuredAmenities[]`.
+`hotelSource` is `"autosuggest"` or `"autosuggest+geopage"`. The list is
+top-matches scale, **not** full inventory — CuddlyNest's real results page
+(`/sr/…`) is bot-blocked and `Disallow`ed in robots.txt.
 
 ### `cuddlynest_listing_details`
 
@@ -148,12 +174,33 @@ npm run watch
 
 ## Architecture
 
-- `index.ts` — MCP server, tool schemas, routing, `robots.txt` handling
+- `index.ts` — MCP server, tool schemas, stdio **and** Streamable HTTP transports,
+  `robots.txt` handling
 - `cuddlynest.ts` — hotel-URL parsing, static-listing `ld+json` parse,
   destination autosuggestion, result shaping
 - `scrape-listing.ts` — `resolveListingPath`, `buildListingUrl`, `scrapeListing`
   (headless browser), `extractRoomsFromDom` (React-fiber walk)
 - `util.ts` — generic object/JSON helpers
+
+
+## Toward a hosted / directory-listed server
+
+Listing in **claude.ai's Connectors Directory** (and equivalents) needs a hosted
+**remote** server, not a local `npx` one. Progress:
+
+| Requirement | State |
+| --- | --- |
+| Streamable HTTP transport | ✅ `--http` / `MCP_TRANSPORT=http` |
+| Container image | ✅ `Dockerfile` (HTTP by default, `EXPOSE 8080`) |
+| Tool annotations (`title`, `readOnlyHint`) | ✅ both tools |
+| Published npm package + MCP registry entry | ✅ |
+| Hosted at a stable HTTPS URL | ☐ needs infra — the per-request headless browser (~15 s, ~500 MB image) rules out most serverless; use a small always-on container |
+| OAuth 2.0 (or a documented no-auth stance for read-only public data) | ☐ |
+| Public privacy policy at a live URL | ☐ **hard requirement — missing = auto-reject** |
+| Public docs page + 3 example prompts + reviewer demo account | ☐ |
+| Submitted by the resource owner (CuddlyNest) from a Team/Enterprise org | ☐ the connector reads cuddlynest.com — Anthropic requires the owner to submit |
+
+See Anthropic's [Connectors Directory submission guide](https://claude.com/docs/connectors/building/submission).
 
 
 ## License

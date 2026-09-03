@@ -20,7 +20,14 @@ import {
   parseHotelInput,
   fetchStaticListing,
   resolveDestinations,
+  searchHotels,
+  resolveCityGeoId,
+  fetchGeopageHotels,
+  geopageMatchesPlace,
+  pickAnchorPlace,
+  mergeHotelCandidates,
   shapeUnit,
+  type HotelCandidate,
 } from "./cuddlynest.js";
 import { resolveListingPath, scrapeListing } from "./scrape-listing.js";
 
@@ -68,17 +75,35 @@ const GUEST_PROPS = {
 
 const CUDDLYNEST_SEARCH_TOOL: Tool = {
   name: "cuddlynest_search",
+  title: "Search CuddlyNest hotels",
+  annotations: {
+    title: "Search CuddlyNest hotels",
+    readOnlyHint: true,
+    openWorldHint: true,
+  },
   description:
-    "Resolve a destination on CuddlyNest (city / area) to its candidates via the " +
-    "public autosuggestion API (name, city/state/country, coordinates, property " +
-    "count). Does NOT enumerate a destination's hotels — for a specific hotel's " +
-    "rooms and prices use cuddlynest_listing_details.",
+    "Search CuddlyNest for a destination and the top hotels there. Returns place " +
+    "candidates (city/region + coordinates + total property count) and a list of " +
+    "hotels — name, listing URL, star + guest rating, and (when available) images, " +
+    "distance from the centre and key amenities. Pass a hotel's product_id from the " +
+    "results to cuddlynest_listing_details for live rooms and prices. The hotel list " +
+    "is top-matches scale (~10-60), not the full inventory.",
   inputSchema: {
     type: "object",
     properties: {
       destination: {
         type: "string",
         description: "Destination to search (city / area), e.g. 'Santa Marta, Colombia'.",
+      },
+      hotelsOnly: {
+        type: "boolean",
+        description: "Return only the hotel list, skipping place candidates (default false).",
+      },
+      fullCityList: {
+        type: "boolean",
+        description:
+          "Also pull the broader city hotel list (~60) from the geo-page API when it " +
+          "can be resolved — a couple of extra requests. Default true.",
       },
       ...GUEST_PROPS,
     },
@@ -88,6 +113,12 @@ const CUDDLYNEST_SEARCH_TOOL: Tool = {
 
 const CUDDLYNEST_LISTING_DETAILS_TOOL: Tool = {
   name: "cuddlynest_listing_details",
+  title: "Get CuddlyNest hotel rooms & prices",
+  annotations: {
+    title: "Get CuddlyNest hotel rooms & prices",
+    readOnlyHint: true,
+    openWorldHint: true,
+  },
   description:
     "Get details for a specific CuddlyNest hotel: static basics (name, location, " +
     "description, amenities, images) from the listing page, plus room options, " +
@@ -205,12 +236,18 @@ function normalizeGuests(params: any) {
 async function handleSearch(params: any) {
   const { destination } = params;
   const g = normalizeGuests(params);
+  const hotelsOnly = params.hotelsOnly === true;
+  const fullCityList = params.fullCityList !== false;
 
   if (!destination) return textResult({ error: "Provide `destination`." }, true);
 
-  let candidates;
+  let places: any[] = [];
+  let hotels: HotelCandidate[] = [];
   try {
-    candidates = await resolveDestinations(destination);
+    [places, hotels] = await Promise.all([
+      resolveDestinations(destination),
+      searchHotels(destination),
+    ]);
   } catch (e) {
     return textResult(
       { error: `Autosuggestion lookup failed: ${e instanceof Error ? e.message : String(e)}` },
@@ -218,15 +255,61 @@ async function handleSearch(params: any) {
     );
   }
 
+  // The best-fitting place anchors the search — used to reject geo pages for the
+  // wrong city (autosuggest fuzzy-matches "Santa Marta"→"Santa Maria", and ranks
+  // "Cartagena, Chile" above "Cartagena, Colombia").
+  const anchor = pickAnchorPlace(destination, places);
+
+  // Best effort: widen the hotel list with the city geo-page (~60 hotels),
+  // but only if the geo page's own location metadata matches the anchor.
+  let hotelSource: "autosuggest" | "autosuggest+geopage" = "autosuggest";
+  let city: any;
+  if (fullCityList && hotels.length > 0) {
+    try {
+      const geoIds = [
+        ...new Set(
+          (await Promise.all(hotels.slice(0, 6).map((h) => resolveCityGeoId(h.productId)))).filter(
+            (id): id is string => !!id,
+          ),
+        ),
+      ].slice(0, 3);
+      for (const geoId of geoIds) {
+        const gp = await fetchGeopageHotels(geoId);
+        if (gp.hotels.length && geopageMatchesPlace(gp, anchor, destination)) {
+          hotels = mergeHotelCandidates(hotels, gp.hotels);
+          hotelSource = "autosuggest+geopage";
+          city = {
+            label: gp.cityLabel,
+            city: gp.city,
+            state: gp.state,
+            country: gp.country,
+            totalProperties: gp.propertyCount,
+          };
+          break;
+        }
+      }
+    } catch (e) {
+      log("warn", "geo-page enrichment skipped", {
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+  }
+
   return textResult({
     query: destination,
     guests: g,
-    candidates,
+    ...(hotelsOnly ? {} : { places }),
+    city,
+    hotelSource,
+    hotelCount: hotels.length,
+    hotels,
     note:
-      candidates.length === 0
-        ? "No destination candidates returned."
-        : "Destination(s) resolved. This tool does not list a destination's hotels — " +
-          "call cuddlynest_listing_details with a specific hotel URL or product_id.",
+      hotels.length === 0
+        ? "No hotels matched. Try a more specific destination, or pass a hotel URL / " +
+          "product_id straight to cuddlynest_listing_details."
+        : `${hotels.length} hotel(s). This is a top-matches list, not full inventory ` +
+          `(CuddlyNest's full results page is not machine-accessible). Pass any ` +
+          `hotel's product_id to cuddlynest_listing_details for live rooms and prices.`,
   });
 }
 
@@ -328,11 +411,6 @@ async function handleListingDetails(params: any) {
 // ---------------------------------------------------------------------------
 // Server setup (generic scaffolding, unchanged shape)
 // ---------------------------------------------------------------------------
-const server = new Server(
-  { name: "cuddlynest", version: VERSION },
-  { capabilities: { tools: {} } },
-);
-
 function log(level: "info" | "warn" | "error", message: string, data?: any) {
   const timestamp = new Date().toISOString();
   const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
@@ -348,11 +426,19 @@ log("info", "CuddlyNest MCP Server starting", {
   platform: process.platform,
 });
 
-server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: CUDDLYNEST_TOOLS,
-}));
+// One MCP server instance with both tool handlers attached. stdio mode reuses a
+// single instance; HTTP mode builds a fresh one per request (stateless).
+function createMcpServer(): Server {
+  const server = new Server(
+    { name: "cuddlynest", version: VERSION },
+    { capabilities: { tools: {} } },
+  );
 
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: CUDDLYNEST_TOOLS,
+  }));
+
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const startTime = Date.now();
   try {
     if (!request.params.name) {
@@ -404,25 +490,119 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       true,
     );
   }
-});
+  });
 
-async function runServer() {
-  try {
-    await fetchRobotsTxt();
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    log("info", "CuddlyNest MCP Server running on stdio", {
+  return server;
+}
+
+function installSignalHandlers() {
+  for (const sig of ["SIGINT", "SIGTERM"] as const) {
+    process.on(sig, () => {
+      log("info", `Received ${sig}, shutting down gracefully`);
+      process.exit(0);
+    });
+  }
+}
+
+// --- stdio (default) -------------------------------------------------------
+async function runStdio() {
+  await fetchRobotsTxt();
+  const server = createMcpServer();
+  await server.connect(new StdioServerTransport());
+  log("info", "CuddlyNest MCP Server running on stdio", {
+    version: VERSION,
+    robotsRespected: !IGNORE_ROBOTS_TXT,
+  });
+  installSignalHandlers();
+}
+
+// --- Streamable HTTP (opt-in: --http / MCP_TRANSPORT=http / PORT set) ------
+// Stateless: a fresh MCP server + transport per POST, per the SDK guidance, so
+// concurrent clients can't collide on request ids. Read-only, no sessions.
+async function runHttp(port: number) {
+  const { createServer } = await import("node:http");
+  const { StreamableHTTPServerTransport } = await import(
+    "@modelcontextprotocol/sdk/server/streamableHttp.js"
+  );
+  await fetchRobotsTxt();
+
+  const http = createServer(async (req, res) => {
+    const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
+
+    if (req.method === "GET" && (url.pathname === "/health" || url.pathname === "/")) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, server: "cuddlynest", version: VERSION }));
+      return;
+    }
+
+    if (url.pathname !== "/mcp") {
+      res.writeHead(404).end();
+      return;
+    }
+
+    if (req.method !== "POST") {
+      // Stateless server: no SSE stream to GET, nothing to DELETE.
+      res.writeHead(405, { Allow: "POST" }).end();
+      return;
+    }
+
+    const chunks: Buffer[] = [];
+    for await (const c of req) chunks.push(c as Buffer);
+    let body: unknown;
+    try {
+      body = chunks.length ? JSON.parse(Buffer.concat(chunks).toString("utf8")) : undefined;
+    } catch {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ jsonrpc: "2.0", error: { code: -32700, message: "Parse error" }, id: null }));
+      return;
+    }
+
+    const server = createMcpServer();
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+    res.on("close", () => {
+      transport.close();
+      server.close();
+    });
+    try {
+      await server.connect(transport);
+      await transport.handleRequest(req, res, body);
+    } catch (err) {
+      log("error", "HTTP request failed", { error: err instanceof Error ? err.message : String(err) });
+      if (!res.headersSent) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ jsonrpc: "2.0", error: { code: -32603, message: "Internal error" }, id: null }));
+      }
+    }
+  });
+
+  http.listen(port, () => {
+    log("info", "CuddlyNest MCP Server running on Streamable HTTP", {
       version: VERSION,
+      endpoint: `http://localhost:${port}/mcp`,
       robotsRespected: !IGNORE_ROBOTS_TXT,
     });
-    process.on("SIGINT", () => {
-      log("info", "Received SIGINT, shutting down gracefully");
-      process.exit(0);
-    });
-    process.on("SIGTERM", () => {
-      log("info", "Received SIGTERM, shutting down gracefully");
-      process.exit(0);
-    });
+  });
+  installSignalHandlers();
+}
+
+async function main() {
+  try {
+    const args = process.argv.slice(2);
+    const httpMode =
+      args.includes("--http") ||
+      process.env.MCP_TRANSPORT === "http" ||
+      (!!process.env.PORT && process.env.MCP_TRANSPORT !== "stdio");
+    if (httpMode) {
+      const flagIdx = args.indexOf("--http");
+      const port = Number(
+        (flagIdx >= 0 && args[flagIdx + 1] && !args[flagIdx + 1].startsWith("-") && args[flagIdx + 1]) ||
+          process.env.PORT ||
+          8080,
+      );
+      await runHttp(port);
+    } else {
+      await runStdio();
+    }
   } catch (error) {
     log("error", "Failed to start server", {
       error: error instanceof Error ? error.message : String(error),
@@ -431,7 +611,7 @@ async function runServer() {
   }
 }
 
-runServer().catch((error) => {
+main().catch((error) => {
   log("error", "Fatal error running server", {
     error: error instanceof Error ? error.message : String(error),
   });

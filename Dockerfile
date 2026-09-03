@@ -16,5 +16,10 @@ RUN npx playwright install --with-deps chromium \
   && npm run build
 
 ENV NODE_ENV=production
+# Containers are for hosting → default to the Streamable HTTP transport.
+# Endpoint: POST http://<host>:$PORT/mcp   ·   health: GET /health
+ENV MCP_TRANSPORT=http
+ENV PORT=8080
+EXPOSE 8080
 
 CMD [ "node", "dist/index.js" ]
