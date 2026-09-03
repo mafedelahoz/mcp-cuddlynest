@@ -1,0 +1,34 @@
+# cuddlynest-mcp + Caddy (automatic HTTPS). Reads ./.env
+services:
+  mcp:
+    build:
+      context: .
+      args:
+        CUDDLYNEST_MCP_VERSION: ${CUDDLYNEST_MCP_VERSION:-0.2.0}
+    restart: unless-stopped
+    environment:
+      MCP_TRANSPORT: http
+      PORT: 8080
+      CUDDLYNEST_SCRAPE_TIMEOUT_MS: ${CUDDLYNEST_SCRAPE_TIMEOUT_MS:-35000}
+      MCP_AUTH_TOKEN: ${MCP_AUTH_TOKEN:-}
+    expose:
+      - "8080"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - mcp
+
+volumes:
+  caddy_data:
+  caddy_config:

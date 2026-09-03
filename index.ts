@@ -533,6 +533,9 @@ async function runHttp(port: number) {
   );
   await fetchRobotsTxt();
 
+  // Optional shared-secret gate for a public deployment. Off unless set.
+  const authToken = process.env.MCP_AUTH_TOKEN || "";
+
   const http = createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
 
@@ -551,6 +554,15 @@ async function runHttp(port: number) {
       // Stateless server: no SSE stream to GET, nothing to DELETE.
       res.writeHead(405, { Allow: "POST" }).end();
       return;
+    }
+
+    if (authToken) {
+      const got = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+      if (got !== authToken) {
+        res.writeHead(401, { "Content-Type": "application/json", "WWW-Authenticate": "Bearer" });
+        res.end(JSON.stringify({ jsonrpc: "2.0", error: { code: -32001, message: "Unauthorized" }, id: null }));
+        return;
+      }
     }
 
     const chunks: Buffer[] = [];
@@ -586,6 +598,7 @@ async function runHttp(port: number) {
     log("info", "CuddlyNest MCP Server running on Streamable HTTP", {
       version: VERSION,
       endpoint: `http://localhost:${port}/mcp`,
+      auth: authToken ? "bearer token required" : "open",
       robotsRespected: !IGNORE_ROBOTS_TXT,
     });
   });

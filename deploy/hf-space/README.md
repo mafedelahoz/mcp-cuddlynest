@@ -1,3 +1,18 @@
+# CuddlyNest MCP — Hugging Face Space (paid tier)
+
+> ⚠️ As of ~July 2026 Hugging Face charges for the **Docker SDK** — the free
+> CPU-basic tier no longer covers Docker Spaces. For a genuinely-free
+> always-on host use **[`../oracle/`](../oracle/SETUP.md)** (Oracle Cloud
+> Always Free). Keep these files only if you have an HF plan that includes
+> Docker Spaces.
+
+The Space frontmatter + Dockerfile below run
+[`cuddlynest-mcp`](https://www.npmjs.com/package/cuddlynest-mcp) over Streamable
+HTTP, pulling it from npm at build time. Endpoint: `POST /mcp`, health: `GET
+/health`. Read-only; reads publicly available CuddlyNest page content only.
+Source: <https://github.com/mafedelahoz/mcp-cuddlynest>
+
+<!-- Space frontmatter, if you do use HF:
 ---
 title: CuddlyNest MCP
 emoji: 🛎️
@@ -6,23 +21,5 @@ colorTo: indigo
 sdk: docker
 app_port: 7860
 pinned: false
-short_description: MCP server for CuddlyNest hotel search, rooms & pricing
 ---
-
-# CuddlyNest MCP — hosted
-
-Runs [`cuddlynest-mcp`](https://www.npmjs.com/package/cuddlynest-mcp) over the
-MCP **Streamable HTTP** transport.
-
-| | |
-| --- | --- |
-| MCP endpoint | `POST https://<this-space>.hf.space/mcp` |
-| Health | `GET  https://<this-space>.hf.space/health` |
-
-Read-only: hotel search + listing details. No booking, no payment. Reads
-publicly available CuddlyNest page content only.
-
-Source, tools and docs: <https://github.com/mafedelahoz/mcp-cuddlynest>
-
-> Free-tier Space: it sleeps after a period of inactivity and takes ~30 s to
-> wake on the next request.
+-->

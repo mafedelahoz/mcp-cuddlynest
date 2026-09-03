@@ -99,8 +99,9 @@ The `Dockerfile` defaults to this mode (`MCP_TRANSPORT=http`, `PORT=8080`). Ther
 is no auth layer yet — put it behind a gateway, or see
 [Toward a hosted / directory-listed server](#toward-a-hosted--directory-listed-server).
 
-A ready-to-push **free host** (Hugging Face Space, Docker) lives in
-[`deploy/hf-space/`](deploy/hf-space/) — see its `DEPLOY.md`.
+A ready-to-run **free always-on host** (Oracle Cloud Always Free + Caddy) lives
+in [`deploy/oracle/`](deploy/oracle/) — see `SETUP.md`. One `bootstrap.sh` on a
+fresh VM brings up the container behind automatic HTTPS.
 
 ---
 
@@ -194,11 +195,12 @@ Listing in **claude.ai's Connectors Directory** (and equivalents) needs a hosted
 | Requirement | State |
 | --- | --- |
 | Streamable HTTP transport | ✅ `--http` / `MCP_TRANSPORT=http` |
-| Container image | ✅ `Dockerfile` + a free-host recipe in `deploy/hf-space/` |
+| Container image | ✅ `Dockerfile` + a free-host kit in `deploy/oracle/` |
 | Tool annotations (`title`, `readOnlyHint`) | ✅ both tools |
 | Published npm package + MCP registry entry | ✅ |
 | Search returns hotels (usable tool surface) | ✅ |
-| Hosted at a stable HTTPS URL | ◑ `deploy/hf-space/` (free HF Space) — needs the deploy step |
+| Optional bearer-token auth (`MCP_AUTH_TOKEN`) | ✅ off by default |
+| Hosted at a stable HTTPS URL | ◑ `deploy/oracle/` (Oracle Always Free) — needs the deploy step |
 | Public privacy policy at a live URL | ✅ [cuddlynest.com/privacy-policy](https://www.cuddlynest.com/privacy-policy) already exists |
 | OAuth 2.0 (or a documented no-auth stance for read-only public data) | ☐ decide: no-auth vs optional API key |
 | Public docs page + 3 example prompts + reviewer demo account | ☐ draftable now |
