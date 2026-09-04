@@ -1,0 +1,38 @@
+# Publishes cuddlynest-mcp to npm on every GitHub Release, via npm Trusted
+# Publishing (OIDC) — no NPM_TOKEN, no OTP, and it stamps provenance.
+#
+# One-time setup on npmjs.com (package → Settings → Publishing access →
+# "Trusted publisher"): add
+#   Provider:  GitHub Actions
+#   Repository: mafedelahoz/mcp-cuddlynest
+#   Workflow:  publish-npm.yml
+name: Publish to npm
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # OIDC token for Trusted Publishing
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      # Trusted Publishing needs npm >= 11.5.1
+      - run: npm install -g npm@latest
+
+      # --ignore-scripts skips the Chromium download (postinstall); we only
+      # need devDeps to compile. `prepare` runs the real build during publish.
+      - run: npm install --ignore-scripts
+      - run: npm run build
+
+      - run: npm publish
