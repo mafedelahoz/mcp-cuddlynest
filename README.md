@@ -95,13 +95,6 @@ node dist/index.js --http 8080      # or: MCP_TRANSPORT=http PORT=8080 node dist
 #   GET   http://<host>:8080/health — liveness
 ```
 
-The `Dockerfile` defaults to this mode (`MCP_TRANSPORT=http`, `PORT=8080`). There
-is no auth layer yet — put it behind a gateway, or see
-[Toward a hosted / directory-listed server](#toward-a-hosted--directory-listed-server).
-
-A ready-to-run **free always-on host** (Oracle Cloud Always Free + Caddy) lives
-in [`deploy/oracle/`](deploy/oracle/) — see `SETUP.md`. One `bootstrap.sh` on a
-fresh VM brings up the container behind automatic HTTPS.
 
 ---
 
@@ -185,28 +178,6 @@ npm run watch
 - `scrape-listing.ts` — `resolveListingPath`, `buildListingUrl`, `scrapeListing`
   (headless browser), `extractRoomsFromDom` (React-fiber walk)
 - `util.ts` — generic object/JSON helpers
-
-
-## Toward a hosted / directory-listed server
-
-Listing in **claude.ai's Connectors Directory** (and equivalents) needs a hosted
-**remote** server, not a local `npx` one. Progress:
-
-| Requirement | State |
-| --- | --- |
-| Streamable HTTP transport | ✅ `--http` / `MCP_TRANSPORT=http` |
-| Container image | ✅ `Dockerfile` + a free-host kit in `deploy/oracle/` |
-| Tool annotations (`title`, `readOnlyHint`) | ✅ both tools |
-| Published npm package + MCP registry entry | ✅ |
-| Search returns hotels (usable tool surface) | ✅ |
-| Optional bearer-token auth (`MCP_AUTH_TOKEN`) | ✅ off by default |
-| Hosted at a stable HTTPS URL | ◑ `deploy/oracle/` (Oracle Always Free) — needs the deploy step |
-| Public privacy policy at a live URL | ✅ [cuddlynest.com/privacy-policy](https://www.cuddlynest.com/privacy-policy) already exists |
-| OAuth 2.0 (or a documented no-auth stance for read-only public data) | ☐ decide: no-auth vs optional API key |
-| Public docs page + 3 example prompts + reviewer demo account | ☐ draftable now |
-| Submitted by the resource owner (CuddlyNest) from a Team/Enterprise org | ☐ the connector reads cuddlynest.com — Anthropic requires the owner to submit |
-
-See Anthropic's [Connectors Directory submission guide](https://claude.com/docs/connectors/building/submission).
 
 
 ## License
