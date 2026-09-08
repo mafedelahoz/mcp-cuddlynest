@@ -30,6 +30,7 @@
   },
   "files": [
     "dist",
+    "assets/icon.png",
     "sync-version.js",
     "server.json",
     "manifest.json",

@@ -1,3 +1,5 @@
+<img src="assets/icon.png" alt="CuddlyNest" width="88" align="right">
+
 # CuddlyNest Search & Listings — MCP Server
 
 [![npm](https://img.shields.io/npm/v/cuddlynest-mcp)](https://www.npmjs.com/package/cuddlynest-mcp)
