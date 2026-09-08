@@ -1,16 +1,21 @@
 # Automatic HTTPS. {$SITE_ADDRESS} comes from the environment (see .env).
 # With an <ip>.sslip.io address Caddy gets a real Let's Encrypt cert with no
 # DNS setup. Swap for mcp.cuddlynest.com once a CNAME/A record exists.
+#
+# `handle` blocks are mutually exclusive and matched in order — first match
+# wins — so /health and /mcp proxy through and everything else gets the stub.
 {$SITE_ADDRESS} {
 	encode zstd gzip
 
-	# Health check, unauthenticated.
-	@health path /health
-	reverse_proxy @health mcp:8080
+	handle /health {
+		reverse_proxy mcp:8080
+	}
 
-	# MCP endpoint.
-	@mcp path /mcp
-	reverse_proxy @mcp mcp:8080
+	handle /mcp* {
+		reverse_proxy mcp:8080
+	}
 
-	respond "cuddlynest-mcp" 200
+	handle {
+		respond "cuddlynest-mcp" 200
+	}
 }
