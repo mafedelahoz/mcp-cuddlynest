@@ -8,6 +8,7 @@ ENV NODE_ENV=production \
     MCP_TRANSPORT=http \
     PORT=8080 \
     HOME=/tmp \
+    IGNORE_ROBOTS_TXT=true \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     NPM_CONFIG_UPDATE_NOTIFIER=false
 

@@ -20,6 +20,10 @@ ENV NODE_ENV=production
 # Endpoint: POST http://<host>:$PORT/mcp   ·   health: GET /health
 ENV MCP_TRANSPORT=http
 ENV PORT=8080
+# The static /hotel/ pages we fetch are allowed by robots.txt, but some
+# datacenter IPs get a Cloudflare interstitial served as robots.txt that the
+# parser reads as "disallow all". Skip the check for the hosted deployment.
+ENV IGNORE_ROBOTS_TXT=true
 EXPOSE 8080
 
 CMD [ "node", "dist/index.js" ]
