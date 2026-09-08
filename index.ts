@@ -176,8 +176,20 @@ async function fetchRobotsTxt() {
     });
     clearTimeout(timeoutId);
     if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    robotsTxtContent = await response.text();
-    log("info", "Successfully fetched robots.txt");
+    const body = await response.text();
+    // Some datacenter IPs get a Cloudflare/anti-bot HTML interstitial served in
+    // place of robots.txt; robots-parser reads that as "disallow everything".
+    // A real robots.txt is plain text with directive lines — reject anything
+    // that looks like HTML or carries no recognizable directive.
+    const looksLikeHtml = /<!doctype html|<html[\s>]|<head[\s>]|<script[\s>]/i.test(body);
+    const hasDirectives = /^\s*(user-agent|disallow|allow|sitemap)\s*:/im.test(body);
+    if (looksLikeHtml || !hasDirectives) {
+      log("warn", "robots.txt response is not a valid robots file (interstitial?); assuming all paths allowed");
+      robotsTxtContent = "";
+    } else {
+      robotsTxtContent = body;
+      log("info", "Successfully fetched robots.txt");
+    }
   } catch (error) {
     log("warn", "Error fetching robots.txt, assuming all paths allowed", {
       error: error instanceof Error ? error.message : String(error),
