@@ -4,11 +4,14 @@ services:
     build:
       context: .
       args:
-        CUDDLYNEST_MCP_VERSION: ${CUDDLYNEST_MCP_VERSION:-0.2.0}
+        CUDDLYNEST_MCP_VERSION: ${CUDDLYNEST_MCP_VERSION:-0.2.1}
     restart: unless-stopped
     environment:
       MCP_TRANSPORT: http
       PORT: 8080
+      # Datacenter IPs sometimes get a Cloudflare interstitial served as
+      # robots.txt; skip the check (the /hotel/ pages are allowed anyway).
+      IGNORE_ROBOTS_TXT: ${IGNORE_ROBOTS_TXT:-true}
       CUDDLYNEST_SCRAPE_TIMEOUT_MS: ${CUDDLYNEST_SCRAPE_TIMEOUT_MS:-35000}
       MCP_AUTH_TOKEN: ${MCP_AUTH_TOKEN:-}
     expose:
