@@ -14,11 +14,6 @@ Read-only by design: search and listing details only. No booking, no payment.
 
 ## How it gets the data
 
-CuddlyNest does not serve room prices in its static HTML. Pricing renders
-client-side on the **public listing page**, backed by the site's own
-infrastructure and third-party wholesale suppliers (`dida travels`,
-`hotelplanner`, `ratehawk`, `hxpro`, `rakuten`, …).
-
 This server reads that data **the same way a visitor does**: it opens the real,
 public listing page in a headless browser (Playwright/Chromium), lets *the
 page's own JavaScript* load the rooms, waits for them to render, and reads the
@@ -156,19 +151,6 @@ npm test             # offline: smoke test (stdio) + scraper tests
 npm run e2e:sansiraka # ONLINE: real scrape of cuddlynest.com, structural asserts
 npm run watch
 ```
-
-- `test-scrape.js` — `buildListingUrl` (pure) + `extractRoomsFromDom` replayed
-  against `fixtures/hotel-sansiraka-2026-10-05.json` (a **real** capture from
-  cuddlynest.com on 2026-09-01: Hotel Sansiraka `4395541`, 2026-10-05→08, 2
-  adults + 1 child age 2, COP — 9 rooms across dida travels / hxpro / ratehawk /
-  rakuten). A local headless Chromium rebuilds the page's DOM+fiber shape from
-  that fixture and checks the extractor reconstructs it — no network.
-- `test-extension.js` — MCP handshake, tool listing, `cuddlynest_search`
-  (hits the autosuggestion API), `cuddlynest_listing_details` product_id parsing.
-- `scripts/e2e-hotel-sansiraka.mjs` — runs a real scrape of the Sansiraka
-  listing and asserts the live result matches the fixture's **structure** (room
-  object shape/keys, non-empty, partner variety). Live prices and the exact
-  partner set drift from the fixture — that's expected.
 
 
 ## Architecture
