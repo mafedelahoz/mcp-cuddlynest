@@ -79,6 +79,14 @@ class MCPTester {
     if (res.error) throw new Error(res.error.message);
     const content = JSON.parse(res.result.content[0].text);
     if (content.query !== "Cartagena, Colombia") throw new Error("query not echoed");
+    if (content.source === "db") {
+      if (!Array.isArray(content.stays) || !content.stays.length) throw new Error("no stays array");
+      const s = content.stays[0];
+      console.log(`   ${content.stayCount} stays (db) — top: ${s.name} [id ${s.id}]`);
+      if (!s.id || !s.url || s.type !== "stay") throw new Error("stay missing id/url/type");
+      if (/price|availab/i.test(JSON.stringify(Object.keys(s)))) throw new Error("stay leaks price/availability");
+      return true;
+    }
     if (!Array.isArray(content.hotels)) throw new Error("no hotels array");
     if (!Array.isArray(content.places)) throw new Error("no places array");
     if (content.hotels.length) {

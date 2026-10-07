@@ -29,6 +29,9 @@ import {
   shapeUnit,
   type HotelCandidate,
 } from "./cuddlynest.js";
+import { DbError, getStaysCached } from "./db.js";
+import { parseDestination } from "./destination.js";
+import { appendFileSync, mkdirSync } from "fs";
 import { resolveListingPath, scrapeListing } from "./scrape-listing.js";
 
 // ---------------------------------------------------------------------------
@@ -82,12 +85,14 @@ const CUDDLYNEST_SEARCH_TOOL: Tool = {
     openWorldHint: true,
   },
   description:
-    "Search CuddlyNest for a destination and the top hotels there. Returns place " +
-    "candidates (city/region + coordinates + total property count) and a list of " +
-    "hotels — name, listing URL, star + guest rating, and (when available) images, " +
-    "distance from the centre and key amenities. Pass a hotel's product_id from the " +
-    "results to cuddlynest_listing_details for live rooms and prices. The hotel list " +
-    "is top-matches scale (~10-60), not the full inventory.",
+    "Search CuddlyNest for a destination (\"City\", \"City, Country\", \"City, State\" or " +
+    "\"City, State, Country\") and the top stays there. Static data only " +
+    "(no prices or availability). When CuddlyNest's catalog DB/cache serves it " +
+    "(source: \"db\", with cachedAt) it returns `stays` — name, category, city/country, coordinates, " +
+    "nearest airport, tags, short description, guest rating, cover image and URL. " +
+    "Otherwise (source: \"live\") it returns place candidates and a `hotels` list " +
+    "from the public site. Pass a stay's id / product_id to cuddlynest_listing_details " +
+    "for live rooms and prices. Results are top-matches scale, not the full inventory.",
   inputSchema: {
     type: "object",
     properties: {
@@ -104,6 +109,19 @@ const CUDDLYNEST_SEARCH_TOOL: Tool = {
         description:
           "Also pull the broader city hotel list (~60) from the geo-page API when it " +
           "can be resolved — a couple of extra requests. Default true.",
+      },
+      limit: {
+        type: "number",
+        description: "Max stays to return from the catalog DB (default 20, max 50).",
+      },
+      source: {
+        type: "string",
+        enum: ["auto", "db", "live"],
+        description:
+          "Where to read stays from. \"auto\" (default): catalog DB/cache, falling back to " +
+          "the live public site if the DB fails, has no results, or the destination is " +
+          "ambiguous. \"db\": catalog DB/cache only — returns an error instead of falling " +
+          "back. \"live\": live public site only, never touches the DB.",
       },
       ...GUEST_PROPS,
     },
@@ -253,6 +271,60 @@ async function handleSearch(params: any) {
 
   if (!destination) return textResult({ error: "Provide `destination`." }, true);
 
+  const mode = params.source ?? "auto";
+  if (!["auto", "db", "live"].includes(mode)) {
+    return textResult({ error: `Invalid source "${mode}". Use "auto", "db" or "live".` }, true);
+  }
+
+  let dbFallbackReason: string | undefined;
+  if (mode !== "live") {
+    const parsed = parseDestination(String(destination));
+    let message: string | undefined;
+    if (parsed.kind === "ambiguous") {
+      dbFallbackReason = "ambiguous_destination";
+      message = parsed.reason;
+    } else {
+      const matched = { city: parsed.city, state: parsed.state, country: parsed.country };
+      try {
+        const r = await getStaysCached({ ...matched, cacheKey: parsed.key, limit: params.limit });
+        if (r.stays.length > 0 || mode === "db") {
+          return textResult({
+            query: destination,
+            source: "db",
+            matched,
+            cache: r.cache,
+            cachedAt: r.cachedAt,
+            stayCount: r.stays.length,
+            stays: r.stays,
+            note: r.stays.length
+              ? `${r.stays.length} stay(s) from CuddlyNest's catalog (data as of ${r.cachedAt}). ` +
+                `Static data only — no prices or availability. Pass a stay's id to ` +
+                `cuddlynest_listing_details for live rooms and prices.`
+              : `No published stays in the catalog for ${JSON.stringify(matched)}. Try ` +
+                `source "auto" or "live", or a different spelling of the destination.`,
+          });
+        }
+        dbFallbackReason = "no_results";
+      } catch (e) {
+        dbFallbackReason = e instanceof DbError ? e.code : "query_failed";
+        message = e instanceof Error ? e.message : String(e);
+      }
+    }
+
+    if (mode === "db") {
+      return textResult(
+        {
+          query: destination,
+          source: "db",
+          error: `Catalog DB search failed: ${dbFallbackReason}${message ? ` — ${message}` : ""}`,
+          code: dbFallbackReason,
+        },
+        true,
+      );
+    }
+    logDbFallback({ destination: String(destination), code: dbFallbackReason!, message });
+  }
+
   let places: any[] = [];
   let hotels: HotelCandidate[] = [];
   try {
@@ -316,6 +388,8 @@ async function handleSearch(params: any) {
 
   return textResult({
     query: destination,
+    source: "live",
+    dbFallbackReason,
     guests: g,
     ...(hotelsOnly ? {} : { places }),
     city,
@@ -435,6 +509,26 @@ function log(level: "info" | "warn" | "error", message: string, data?: any) {
   const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
   if (data) console.error(`${logMessage}:`, JSON.stringify(data, null, 2));
   else console.error(logMessage);
+}
+
+const FALLBACK_LOG =
+  process.env.CUDDLYNEST_FALLBACK_LOG || join(__dirname, "..", "logs", "db-fallback.log");
+let fallbackLogWarned = false;
+
+function logDbFallback(entry: { destination: string; code: string; message?: string }) {
+  const record = { ts: new Date().toISOString(), event: "db_fallback", ...entry };
+  console.error(JSON.stringify(record));
+  try {
+    mkdirSync(dirname(FALLBACK_LOG), { recursive: true });
+    appendFileSync(FALLBACK_LOG, JSON.stringify(record) + "\n");
+  } catch (e) {
+    if (!fallbackLogWarned) {
+      fallbackLogWarned = true;
+      log("warn", "Could not write the DB fallback log file; stderr only", {
+        error: (e as any)?.code ?? String(e),
+      });
+    }
+  }
 }
 
 log("info", "CuddlyNest MCP Server starting", {
