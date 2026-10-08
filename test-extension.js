@@ -103,6 +103,24 @@ class MCPTester {
     return true;
   }
 
+  async testUnavailableVertical() {
+    console.log("\n🧭 cuddlynest_search vertical=attractions (no source yet)...");
+    for (const source of ["auto", "db", "live"]) {
+      const res = await this.sendRequest("tools/call", {
+        name: "cuddlynest_search",
+        arguments: { destination: "Cartagena, Colombia", vertical: "attractions", source },
+      });
+      if (res.error) throw new Error(res.error.message);
+      const content = JSON.parse(res.result.content[0].text);
+      if (res.result.isError) throw new Error(`source=${source}: unexpected tool error`);
+      if (content.source !== "unavailable") throw new Error(`source=${source}: expected "unavailable"`);
+      if (!Array.isArray(content.results) || content.results.length) throw new Error("expected empty results");
+      if (!/^no_(db|live)_source_for_vertical$/.test(content.reason)) throw new Error(`bad reason ${content.reason}`);
+      console.log(`   ✅ source=${source} -> ${content.reason}`);
+    }
+    return true;
+  }
+
   async testListingParsing() {
     console.log("\n🏨 cuddlynest_listing_details (product_id parse, no dates)...");
     const res = await this.sendRequest("tools/call", {
@@ -139,6 +157,7 @@ class MCPTester {
       for (const t of [
         () => this.testListTools(),
         () => this.testSearch(),
+        () => this.testUnavailableVertical(),
         () => this.testListingParsing(),
       ]) {
         try {

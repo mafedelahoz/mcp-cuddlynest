@@ -19,18 +19,11 @@ import {
   BASE_URL,
   parseHotelInput,
   fetchStaticListing,
-  resolveDestinations,
-  searchHotels,
-  resolveCityGeoId,
-  fetchGeopageHotels,
-  geopageMatchesPlace,
-  pickAnchorPlace,
-  mergeHotelCandidates,
   shapeUnit,
-  type HotelCandidate,
 } from "./cuddlynest.js";
-import { DbError, getStaysCached } from "./db.js";
+import { DbError, getStaysCached, startStaysCacheRefresh } from "./db.js";
 import { parseDestination } from "./destination.js";
+import { fallbackSearchProvider, type Vertical } from "./fallback-provider.js";
 import { appendFileSync, mkdirSync } from "fs";
 import { resolveListingPath, scrapeListing } from "./scrape-listing.js";
 
@@ -113,6 +106,13 @@ const CUDDLYNEST_SEARCH_TOOL: Tool = {
       limit: {
         type: "number",
         description: "Max stays to return from the catalog DB (default 20, max 50).",
+      },
+      vertical: {
+        type: "string",
+        enum: ["stays", "flights", "attractions"],
+        description:
+          "What to search (default \"stays\"). Only stays have a data source today; " +
+          "flights and attractions return source \"unavailable\" with empty results.",
       },
       source: {
         type: "string",
@@ -263,6 +263,26 @@ function normalizeGuests(params: any) {
 // ---------------------------------------------------------------------------
 // Tool handlers
 // ---------------------------------------------------------------------------
+const VERTICALS: readonly Vertical[] = ["stays", "flights", "attractions"];
+
+function unavailableVertical(destination: string, vertical: Vertical, mode: string) {
+  const reason =
+    mode === "live" && !fallbackSearchProvider.verticals.includes(vertical)
+      ? "no_live_source_for_vertical"
+      : "no_db_source_for_vertical";
+  return textResult({
+    query: destination,
+    vertical,
+    requestedSource: mode,
+    source: "unavailable",
+    reason,
+    results: [],
+    note:
+      `No data source for ${vertical} yet (${reason}). Only stays are searchable ` +
+      `today; use vertical "stays".`,
+  });
+}
+
 async function handleSearch(params: any) {
   const { destination } = params;
   const g = normalizeGuests(params);
@@ -275,6 +295,14 @@ async function handleSearch(params: any) {
   if (!["auto", "db", "live"].includes(mode)) {
     return textResult({ error: `Invalid source "${mode}". Use "auto", "db" or "live".` }, true);
   }
+  const vertical = params.vertical ?? "stays";
+  if (!VERTICALS.includes(vertical)) {
+    return textResult(
+      { error: `Invalid vertical "${vertical}". Use ${VERTICALS.map((v) => `"${v}"`).join(", ")}.` },
+      true,
+    );
+  }
+  if (vertical !== "stays") return unavailableVertical(String(destination), vertical, mode);
 
   let dbFallbackReason: string | undefined;
   if (mode !== "live") {
@@ -325,70 +353,23 @@ async function handleSearch(params: any) {
     logDbFallback({ destination: String(destination), code: dbFallbackReason!, message });
   }
 
-  let places: any[] = [];
-  let hotels: HotelCandidate[] = [];
+
+  let live;
   try {
-    [places, hotels] = await Promise.all([
-      resolveDestinations(destination),
-      searchHotels(destination),
-    ]);
+    live = await fallbackSearchProvider.searchStays({
+      destination: String(destination),
+      fullCityList,
+      log,
+    });
   } catch (e) {
-    return textResult(
-      { error: `Autosuggestion lookup failed: ${e instanceof Error ? e.message : String(e)}` },
-      true,
-    );
+    return textResult({ error: e instanceof Error ? e.message : String(e) }, true);
   }
-
-  // The best-fitting place anchors the search — used to reject geo pages for the
-  // wrong city (autosuggest fuzzy-matches "Santa Marta"→"Santa Maria", and ranks
-  // "Cartagena, Chile" above "Cartagena, Colombia").
-  const anchor = pickAnchorPlace(destination, places);
-
-  // Best effort, time-boxed: widen the hotel list with the city geo-page
-  // (~60-250 hotels), but only if the geo page's own location metadata matches
-  // the anchor. Bounded so a slow geo page never stalls the search.
-  let hotelSource: "autosuggest" | "autosuggest+geopage" = "autosuggest";
-  let city: any;
-  if (fullCityList && hotels.length > 0) {
-    try {
-      const enrich = (async () => {
-        const geoIds = [
-          ...new Set(
-            (
-              await Promise.all(hotels.slice(0, 4).map((h) => resolveCityGeoId(h.productId)))
-            ).filter((id): id is string => !!id),
-          ),
-        ].slice(0, 2);
-        for (const geoId of geoIds) {
-          const gp = await fetchGeopageHotels(geoId);
-          if (gp.hotels.length && geopageMatchesPlace(gp, anchor, destination)) {
-            hotels = mergeHotelCandidates(hotels, gp.hotels);
-            hotelSource = "autosuggest+geopage";
-            city = {
-              label: gp.cityLabel,
-              city: gp.city,
-              state: gp.state,
-              country: gp.country,
-              totalProperties: gp.propertyCount,
-            };
-            return;
-          }
-        }
-      })();
-      await Promise.race([
-        enrich,
-        new Promise((_, rej) => setTimeout(() => rej(new Error("geo-page budget exceeded")), 12000)),
-      ]);
-    } catch (e) {
-      log("warn", "geo-page enrichment skipped", {
-        error: e instanceof Error ? e.message : String(e),
-      });
-    }
-  }
+  const { places, city, hotelSource, hotels } = live;
 
   return textResult({
     query: destination,
     source: "live",
+    provider: fallbackSearchProvider.name,
     dbFallbackReason,
     guests: g,
     ...(hotelsOnly ? {} : { places }),
@@ -700,11 +681,14 @@ async function runHttp(port: number) {
     }
   });
 
+  const refresh = startStaysCacheRefresh(log);
+
   http.listen(port, () => {
     log("info", "CuddlyNest MCP Server running on Streamable HTTP", {
       version: VERSION,
       endpoint: `http://localhost:${port}/mcp`,
       auth: authToken ? "bearer token required" : "open",
+      cacheRefresh: refresh ? `every ${refresh.intervalMs / 3_600_000}h` : "off",
       robotsRespected: !IGNORE_ROBOTS_TXT,
     });
   });

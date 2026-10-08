@@ -22,6 +22,7 @@ export function cacheMaxAgeMs(): number {
 interface Entry {
   cachedAt: string; // ISO timestamp of the DB read
   value: unknown;
+  meta?: unknown; 
 }
 
 let entries: Map<string, Entry> | undefined;
@@ -72,14 +73,34 @@ export function cacheGet<T>(key: string): { value: T; cachedAt: string } | undef
 }
 
 /** Store `value` under `key`; prunes stale entries and caps the file size. Returns cachedAt. */
-export function cacheSet(key: string, value: unknown): string {
+export function cacheSet(
+  key: string,
+  value: unknown,
+  meta?: unknown,
+  { flush = true }: { flush?: boolean } = {},
+): string {
   const map = load();
   const cachedAt = new Date().toISOString();
   map.delete(key); // re-insert so Map order stays oldest -> newest
-  map.set(key, { cachedAt, value });
+  map.set(key, { cachedAt, value, ...(meta !== undefined ? { meta } : {}) });
   const now = Date.now();
   for (const [k, e] of map) if (!isFresh(e, now)) map.delete(k);
   while (map.size > MAX_ENTRIES) map.delete(map.keys().next().value as string);
-  persist(map);
+  if (flush) persist(map);
   return cachedAt;
+}
+
+export function cacheDelete(key: string, { flush = true }: { flush?: boolean } = {}): void {
+  const map = load();
+  if (map.delete(key) && flush) persist(map);
+}
+
+/** Write the in-memory cache to disk (after a batch of `flush: false` updates). */
+export function cacheFlush(): void {
+  persist(load());
+}
+
+/** Every entry currently held (fresh or stale), oldest first, without values. */
+export function cacheEntries<M = unknown>(): { key: string; cachedAt: string; meta?: M }[] {
+  return [...load()].map(([key, e]) => ({ key, cachedAt: e.cachedAt, meta: e.meta as M | undefined }));
 }

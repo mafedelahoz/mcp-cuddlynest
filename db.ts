@@ -1,10 +1,8 @@
-// Static data only: no price or availability columns are selected here — those
-// stay with the live auto-booking flow (cuddlynest_listing_details), so the chat
-// use case doesn't affect the L2B ratio.
+
 
 import { config as loadEnv } from "dotenv";
 import mysql from "mysql2/promise";
-import { cacheGet, cacheSet } from "./cache.js";
+import { cacheDelete, cacheEntries, cacheFlush, cacheGet, cacheMaxAgeMs, cacheSet } from "./cache.js";
 
 loadEnv({ quiet: true });
 
@@ -101,7 +99,6 @@ function getPool(): mysql.Pool {
 
 /**
  * Run one read-only SELECT with a server-side MAX_EXECUTION_TIME on the session
- * plus a client-side timeout as a backstop. Throws DbError, never anything else.
  */
 export async function dbQuery<T = any>(sql: string, params: unknown[] = []): Promise<T[]> {
   if (!/^\s*SELECT\b/i.test(sql)) {
@@ -227,7 +224,10 @@ export async function getStaysCached(
   if (hit) return { stays: hit.value.slice(0, limit), cachedAt: hit.cachedAt, cache: "hit" };
 
   const stays = await getStaysFromDb({ ...params, limit: MAX_LIMIT });
-  const cachedAt = stays.length ? cacheSet(params.cacheKey, stays) : new Date().toISOString();
+  const filter: StayFilter = { city: params.city, state: params.state, country: params.country };
+  const cachedAt = stays.length
+    ? cacheSet(params.cacheKey, stays, filter)
+    : new Date().toISOString();
   return { stays: stays.slice(0, limit), cachedAt, cache: "miss" };
 }
 
@@ -354,4 +354,93 @@ export function shortDescription(...candidates: unknown[]): string | null {
     return (lastSpace > 200 ? cut.slice(0, lastSpace) : cut).replace(/[\s,.;:]+$/, "") + "…";
   }
   return null;
+}
+
+// Re-reads the DB for every destination already in the cache, so popular
+// destinations stay warm instead of being refreshed only when someone searches
+// them after they expire. 
+
+type StayFilter = Pick<StaySearchParams, "city" | "state" | "country">;
+
+function filterFromKey(key: string): StayFilter {
+  const [city = "", state, country] = key.split("|");
+  return { city, state: state || undefined, country: country || undefined };
+}
+
+export interface RefreshSummary {
+  destinations: number;
+  refreshed: number;
+  emptied: number; 
+  failed: number;
+  aborted?: DbErrorCode; 
+  durationMs: number;
+}
+
+export async function refreshStaysCache(): Promise<RefreshSummary> {
+  const started = Date.now();
+  const entries = cacheEntries<StayFilter>();
+  const summary: RefreshSummary = {
+    destinations: entries.length,
+    refreshed: 0,
+    emptied: 0,
+    failed: 0,
+    durationMs: 0,
+  };
+  try {
+    for (const e of entries) {
+      const filter = e.meta?.city ? e.meta : filterFromKey(e.key);
+      try {
+        const stays = await getStaysFromDb({ ...filter, limit: MAX_LIMIT });
+        if (stays.length) {
+          cacheSet(e.key, stays, filter, { flush: false });
+          summary.refreshed++;
+        } else {
+          cacheDelete(e.key, { flush: false });
+          summary.emptied++;
+        }
+      } catch (err) {
+        summary.failed++;
+        const code = err instanceof DbError ? err.code : "query_failed";
+        if (code === "unavailable" || code === "not_configured") {
+          summary.aborted = code;
+          break;
+        }
+      }
+    }
+  } finally {
+    cacheFlush();
+    summary.durationMs = Date.now() - started;
+  }
+  return summary;
+}
+
+type Log = (level: "info" | "warn" | "error", message: string, data?: any) => void;
+
+let refreshTimer: NodeJS.Timeout | undefined;
+
+export function startStaysCacheRefresh(log: Log): { intervalMs: number } | undefined {
+  if (refreshTimer || !isDbConfigured()) return undefined;
+  const defaultHours = cacheMaxAgeMs() / 3_600_000;
+  const raw = process.env.CUDDLYNEST_CACHE_REFRESH_INTERVAL_HOURS;
+  const hours = raw != null && raw !== "" ? Number(raw) : defaultHours;
+  if (!Number.isFinite(hours) || hours <= 0) return undefined;
+  const intervalMs = Math.min(Math.round(hours * 3_600_000), 2 ** 31 - 1);
+
+  let running = false;
+  refreshTimer = setInterval(async () => {
+    if (running) return; 
+    running = true;
+    try {
+      const summary = await refreshStaysCache();
+      log(summary.aborted ? "warn" : "info", "Stays cache background refresh", summary);
+    } catch (e) {
+      log("warn", "Stays cache background refresh failed", {
+        error: e instanceof Error ? e.message : String(e),
+      });
+    } finally {
+      running = false;
+    }
+  }, intervalMs);
+  refreshTimer.unref();
+  return { intervalMs };
 }
