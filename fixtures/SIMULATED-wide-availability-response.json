@@ -1,0 +1,65 @@
+{
+  "_SIMULATED_FIXTURE": "NOT a captured API response. Hand-written from what the rendered www.cuddlynest.com results page shows (name, area, distance, stars, property type, review score/label/count, original + discounted price, taxes and fees, free cancellation, cover image). Every field NAME here is an assumption. Replace with a real capture (scripts/capture-availability.mjs) when the API key arrives. See docs/be-api-notes.md.",
+  "data": {
+    "listings": [
+      {
+        "productId": 9000001,
+        "name": "Simulated Hotel Rivoli",
+        "slug": "simulated-hotel-rivoli",
+        "propertyType": "Hotel",
+        "starRating": 4,
+        "reviewScore": 8.6,
+        "reviewLabel": "Superb",
+        "reviewCount": 763,
+        "neighborhood": "1st arr.",
+        "distanceFromCenter": 1.2,
+        "coverImage": "https://img.cuddlynest.com/images/listings/simulated/cover-1.jpg",
+        "url": "hotel/fr/simulated-hotel-rivoli-9000001",
+        "price": 210.5,
+        "originalPrice": 260,
+        "taxesAndFees": 31.2,
+        "freeCancellation": true,
+        "currency": "USD",
+        "partnerCode": "SIM"
+      },
+      {
+        "productId": "9000002",
+        "name": "Simulated Villa Montmartre",
+        "propertyType": "Villa",
+        "starRating": "3",
+        "reviewLabel": "7.9 Very Good (1,204)",
+        "neighborhood": "18th arr.",
+        "distanceFromCenter": "4.5 km",
+        "images": ["https://img.cuddlynest.com/images/listings/simulated/cover-2.jpg"],
+        "price": "$1,180.00",
+        "originalPrice": "$1,400.00",
+        "taxesAndFees": "$95.40",
+        "freeCancellation": 0
+      },
+      {
+        "product_id": 9000003,
+        "product_title": "Simulated Apartments Marais",
+        "property_type": "Apartment",
+        "star_rating": 2,
+        "review_score": 9.1,
+        "review_label": "Exceptional",
+        "review_count": 58,
+        "area": "Le Marais",
+        "distance_from_center": 0.9,
+        "cover_image": "https://img.cuddlynest.com/images/listings/simulated/cover-3.jpg",
+        "discounted_price": 145,
+        "original_price": 170,
+        "taxes_and_fees": 18,
+        "free_cancellation": "true"
+      },
+      {
+        "productId": 9000004,
+        "name": "Simulated Hostel With Sparse Data"
+      },
+      {
+        "name": "Simulated Listing Without An Id",
+        "price": 99
+      }
+    ]
+  }
+}

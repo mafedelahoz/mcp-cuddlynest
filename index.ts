@@ -24,6 +24,7 @@ import {
 import { DbError, getStaysCached, startStaysCacheRefresh } from "./db.js";
 import { parseDestination } from "./destination.js";
 import { fallbackSearchProvider, type Vertical } from "./fallback-provider.js";
+import { BeApiError, beApiSearchProvider } from "./be-api-provider.js";
 import { appendFileSync, mkdirSync } from "fs";
 import { resolveListingPath, scrapeListing } from "./scrape-listing.js";
 
@@ -79,12 +80,13 @@ const CUDDLYNEST_SEARCH_TOOL: Tool = {
   },
   description:
     "Search CuddlyNest for a destination (\"City\", \"City, Country\", \"City, State\" or " +
-    "\"City, State, Country\") and the top stays there. Static data only " +
+    "\"City, State, Country\") and the top stays there. By default static data only " +
     "(no prices or availability). When CuddlyNest's catalog DB/cache serves it " +
     "(source: \"db\", with cachedAt) it returns `stays` — name, category, city/country, coordinates, " +
     "nearest airport, tags, short description, guest rating, cover image and URL. " +
-    "Otherwise (source: \"live\") it returns place candidates and a `hotels` list " +
-    "from the public site. Pass a stay's id / product_id to cuddlynest_listing_details " +
+    "If the catalog can't answer, it returns place candidates and a `hotels` list " +
+    "from the public site. Only an explicit source: \"live\" queries real-time availability " +
+    "(prices under each stay's `pricing`). Pass a stay's id / product_id to cuddlynest_listing_details " +
     "for live rooms and prices. Results are top-matches scale, not the full inventory.",
   inputSchema: {
     type: "object",
@@ -119,9 +121,11 @@ const CUDDLYNEST_SEARCH_TOOL: Tool = {
         enum: ["auto", "db", "live"],
         description:
           "Where to read stays from. \"auto\" (default): catalog DB/cache, falling back to " +
-          "the live public site if the DB fails, has no results, or the destination is " +
+          "the public site if the DB fails, has no results, or the destination is " +
           "ambiguous. \"db\": catalog DB/cache only — returns an error instead of falling " +
-          "back. \"live\": live public site only, never touches the DB.",
+          "back. \"live\": CuddlyNest's live availability API only (real-time supplier " +
+          "prices; needs checkin/checkout). Use \"live\" only when live prices are really " +
+          "needed — it never falls back to another source.",
       },
       ...GUEST_PROPS,
     },
@@ -267,7 +271,7 @@ const VERTICALS: readonly Vertical[] = ["stays", "flights", "attractions"];
 
 function unavailableVertical(destination: string, vertical: Vertical, mode: string) {
   const reason =
-    mode === "live" && !fallbackSearchProvider.verticals.includes(vertical)
+    mode === "live" && !beApiSearchProvider.verticals.includes(vertical)
       ? "no_live_source_for_vertical"
       : "no_db_source_for_vertical";
   return textResult({
@@ -281,6 +285,45 @@ function unavailableVertical(destination: string, vertical: Vertical, mode: stri
       `No data source for ${vertical} yet (${reason}). Only stays are searchable ` +
       `today; use vertical "stays".`,
   });
+}
+
+async function handleLiveSearch(
+  destination: string,
+  g: ReturnType<typeof normalizeGuests>,
+  limit?: number,
+) {
+  const provider = beApiSearchProvider.name;
+  try {
+    const r = await beApiSearchProvider.searchStays({ destination, ...g, log });
+    const max = Math.min(Math.max(1, Math.floor(limit ?? 20)), 50);
+    const stays = r.stays.slice(0, max);
+    return textResult({
+      query: destination,
+      source: "live",
+      provider,
+      resolvedLocation: r.resolvedLocation,
+      guests: g,
+      stayCount: stays.length,
+      stays,
+      note:
+        `${stays.length} stay(s) with live supplier availability. Static fields match the ` +
+        `catalog shape; prices and availability are only under each stay's \`pricing\`.`,
+    });
+  } catch (e) {
+    // No silent fallback: the caller asked for live data specifically.
+    const code = e instanceof BeApiError ? e.code : "unexpected_error";
+    log("warn", "Live availability search failed", { destination, code });
+    return textResult(
+      {
+        query: destination,
+        source: "live",
+        provider,
+        error: e instanceof Error ? e.message : String(e),
+        liveErrorCode: code,
+      },
+      true,
+    );
+  }
 }
 
 async function handleSearch(params: any) {
@@ -303,6 +346,10 @@ async function handleSearch(params: any) {
     );
   }
   if (vertical !== "stays") return unavailableVertical(String(destination), vertical, mode);
+
+  // Explicit "live" only (Option B): a real-time supplier call, which counts
+  // against the Look-to-Book ratio. Never reached from "auto" or "db".
+  if (mode === "live") return handleLiveSearch(String(destination), g, params.limit);
 
   let dbFallbackReason: string | undefined;
   if (mode !== "live") {

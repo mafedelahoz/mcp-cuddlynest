@@ -46,7 +46,7 @@
     "start": "node dist/index.js",
     "start:http": "node dist/index.js --http",
     "pretest": "npm run build",
-    "test": "node test-extension.js && node test-scrape.js",
+    "test": "node test-extension.js && node test-live-isolation.js && node test-be-mapping.js && node test-scrape.js",
     "e2e:sansiraka": "npm run build && node scripts/e2e-hotel-sansiraka.mjs",
     "watch": "tsc --watch",
     "sync-version": "node sync-version.js",
