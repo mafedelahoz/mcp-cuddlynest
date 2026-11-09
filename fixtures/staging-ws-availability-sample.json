@@ -1,0 +1,252 @@
+{
+ "_CAPTURED_FIXTURE": "Real availability event from the STAGING WebSocket (wss://…/get-availability), Singapore, checkin 2026-11-14, checkout 2026-11-15, captured 2026-11-09. Trimmed to a few listings. Public hotel data only.",
+ "event": "availability",
+ "is_cached": true,
+ "data": [
+  {
+   "discount": 20,
+   "discounted_price": 188,
+   "distance": 2.94114,
+   "distance_unit": "km",
+   "fees": 13,
+   "grs_adjective_new": "poor",
+   "grs_new": 0,
+   "grs_total_reviews": 0,
+   "hotel_name": "Dao by Dorsett AMTD Singapore",
+   "is_breakfast_included": false,
+   "is_free_cancellation": false,
+   "location": {
+    "coordinates": [
+     103.84868,
+     1.27743
+    ],
+    "type": "Point"
+   },
+   "lowest_price": 208,
+   "main_property_type": "hotels",
+   "neighborhood": "Duxton Hill",
+   "product_id": "3695524",
+   "product_images": [
+    "https://img.cuddlynest.com/images/listings/2021/09/10/15/16b923955ff4b9c591625f8355bc36f2.jpg",
+    "https://img.cuddlynest.com/images/listings/2021/09/10/15/1f987fcce5b8d753a2c3cbf607d01c3c.jpg",
+    "https://img.cuddlynest.com/images/listings/2021/09/10/15/f55145d1f7cfc4f7deb74f1639c1e83f.jpg",
+    "https://img.cuddlynest.com/images/listings/2021/09/10/15/2aa7fa1507b4568886970c236bb3ab06.jpg",
+    "https://img.cuddlynest.com/images/listings/2021/09/10/15/d88113cc4dce773cb2feb95b5ec0ea2b.jpg"
+   ],
+   "property_key": "1372ff67900b1eb8877d49f3b0cc7f4c",
+   "source_product_id": "857036",
+   "star_rating": 5,
+   "tags": {
+    "airport": [
+     {
+      "distance": 18.1,
+      "name": "Singapore Changi Airport",
+      "walking_distance": 0
+     }
+    ],
+    "food": [
+     {
+      "distance": 0.2,
+      "name": "Huggs Coffee",
+      "walking_distance": 2
+     },
+     {
+      "distance": 0.2,
+      "name": "Preludio",
+      "walking_distance": 2
+     },
+     {
+      "distance": 0.4,
+      "name": "Nouri",
+      "walking_distance": 5
+     }
+    ],
+    "landmark": [
+     {
+      "distance": 0.4,
+      "name": "Singapore Musical Box Museum",
+      "walking_distance": 5
+     },
+     {
+      "distance": 0.5,
+      "name": "Ann Siang Hill Park",
+      "walking_distance": 6
+     },
+     {
+      "distance": 0.8,
+      "name": "Raffles Place",
+      "walking_distance": 10
+     }
+    ],
+    "parks": [
+     {
+      "distance": 0.5,
+      "name": "Ann Siang Hill Park",
+      "walking_distance": 6
+     },
+     {
+      "distance": 1.2,
+      "name": "Merlion",
+      "walking_distance": 14
+     },
+     {
+      "distance": 1.2,
+      "name": "Merlion Park",
+      "walking_distance": 14
+     }
+    ],
+    "shopping": [
+     {
+      "distance": 1.3,
+      "name": "Clarke Quay Central",
+      "walking_distance": 16
+     },
+     {
+      "distance": 1.5,
+      "name": "The Shoppes at Marina Bay Sands",
+      "walking_distance": 0
+     },
+     {
+      "distance": 1.5,
+      "name": "Funan",
+      "walking_distance": 0
+     }
+    ],
+    "station": [
+     {
+      "distance": 1,
+      "name": "Chinatown Mrt Station",
+      "walking_distance": 12
+     },
+     {
+      "distance": 1.1,
+      "name": "Outram Park Mrt Station",
+      "walking_distance": 13
+     }
+    ]
+   }
+  },
+  {
+   "discount": 116,
+   "discounted_price": 1038,
+   "distance": 1.11074,
+   "distance_unit": "km",
+   "fees": 69,
+   "grs_adjective_new": "Excellent",
+   "grs_new": 9.4,
+   "grs_total_reviews": "761",
+   "hotel_name": "Raffles Singapore",
+   "is_breakfast_included": false,
+   "location": {
+    "coordinates": [
+     103.854744,
+     1.294684
+    ],
+    "type": "Point"
+   },
+   "lowest_price": 1154,
+   "main_property_type": "hotels",
+   "neighborhood": "Colonial District",
+   "product_id": "4315228",
+   "product_images": [
+    "https://img.cuddlynest.com/images/listings/2023/9/12/6994314/1/xw6m2jtm9w7khdkel0mt2y7oi1iij5.jpg",
+    "https://img.cuddlynest.com/images/listings/2023/9/12/6994314/2/w6heevrsgg641u895w820u9go4y830.jpg",
+    "https://img.cuddlynest.com/images/listings/2023/9/12/6994314/3/78dtegw1iy7q3ph9tkcu0z9eo6cvbm.jpg",
+    "https://img.cuddlynest.com/images/listings/2023/9/12/6994314/4/sfo4i0ixj0qe5j1e6ric3yckdy537s.jpg",
+    "https://img.cuddlynest.com/images/listings/2023/9/12/6994314/5/91wcsoqot6erlvgbaxwb68x9l3r924.jpg"
+   ],
+   "property_key": "5ebf0b3a129d424b9d2ec87287c247f3",
+   "source_product_id": "139296",
+   "star_rating": 5,
+   "tags": {
+    "airport": [
+     {
+      "distance": 16.7,
+      "name": "Singapore Changi Airport",
+      "walking_distance": 0
+     }
+    ],
+    "food": [
+     {
+      "distance": 0.1,
+      "name": "Singapore Coffee",
+      "walking_distance": 1
+     },
+     {
+      "distance": 0.1,
+      "name": "Akira Back",
+      "walking_distance": 1
+     },
+     {
+      "distance": 0.2,
+      "name": "Skai",
+      "walking_distance": 2
+     }
+    ],
+    "landmark": [
+     {
+      "distance": 0.2,
+      "name": "MINT Museum of Toys",
+      "walking_distance": 2
+     },
+     {
+      "distance": 0.5,
+      "name": "Marina Square",
+      "walking_distance": 6
+     },
+     {
+      "distance": 0.5,
+      "name": "Suntec City",
+      "walking_distance": 6
+     }
+    ],
+    "parks": [
+     {
+      "distance": 0.5,
+      "name": "SuperPark Singapore",
+      "walking_distance": 6
+     },
+     {
+      "distance": 0.5,
+      "name": "Pororo Park Singapore",
+      "walking_distance": 6
+     },
+     {
+      "distance": 0.5,
+      "name": "Esplanade Park",
+      "walking_distance": 6
+     }
+    ],
+    "shopping": [
+     {
+      "distance": 0.5,
+      "name": "Bugis+",
+      "walking_distance": 6
+     },
+     {
+      "distance": 0.6,
+      "name": "Funan",
+      "walking_distance": 7
+     },
+     {
+      "distance": 0.7,
+      "name": "Bugis Street",
+      "walking_distance": 8
+     }
+    ],
+    "station": [
+     {
+      "distance": 1.1,
+      "name": "Dhoby Ghaut Mrt Station",
+      "walking_distance": 13
+     },
+     {
+      "distance": 1.1,
+      "name": "Clarke Quay Mrt Station",
+      "walking_distance": 14
+     }
+    ]
+   }
+  }
+ ]
+}

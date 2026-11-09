@@ -1,41 +1,38 @@
-// BE availability API ("Wide availability") — AO-11, Option B.
+// BE availability API — AO-11 / AO-16, Option B.
 //
-// This is a LIVE supplier call: it counts against the Look-to-Book ratio. It is
-// only ever used when a caller explicitly passes source: "live" to
+// This is a LIVE availability call: it counts against the Look-to-Book ratio. It
+// is only ever used when a caller explicitly passes source: "live" to
 // cuddlynest_search. It must never be wired into the automatic (source "auto")
 // fallback chain — that stays DB -> scraping (see fallback-provider.ts).
 //
-// Request contract: captured from www.cuddlynest.com live traffic (Paris search).
-// Response contract: NOT YET SEEN. mapAvailabilityResponse() is written against a
-// SIMULATED fixture with assumed field names, and stays switched off
-// (MAPPING_VERIFIED = false -> "response_mapping_pending") until it has been
-// checked against a real response. What's known vs assumed: docs/be-api-notes.md.
+// Contract (given by the backend team, verified against staging 2026-11-09):
+// a WebSocket at wss://<host>/get-availability. The client sends one JSON search
+// message; the server streams events: "connection", then "availability" (the
+// listings), then "info" / "filter" / "sort" (facets). The socket stays open, so
+// we close it once "availability" arrives. The handshake needs an Origin header.
+// Details and open questions: docs/be-api-notes.md.
 
-import { randomBytes, randomUUID } from "crypto";
 import { writeFileSync } from "fs";
-import fetch from "node-fetch";
 
 import { AuthError, getAccessToken, invalidateAccessToken } from "./auth.js";
 import { pickAnchorPlace, resolveDestinations, type DestinationCandidate } from "./cuddlynest.js";
 import type { Stay } from "./db.js";
 import type { Vertical } from "./fallback-provider.js";
 
+// Staging is the only environment we've been given; production's URL is TBD.
 const AVAILABILITY_URL =
-  process.env.CUDDLYNEST_BE_AVAILABILITY_URL || "https://secure-smw-3-0.cuddlynest.com/api/availability";
+  process.env.CUDDLYNEST_BE_AVAILABILITY_URL || "wss://staging-smw-4-0.cuddlynest.com/get-availability";
+const AVAILABILITY_ORIGIN = process.env.CUDDLYNEST_BE_ORIGIN || "https://www.cuddlynest.com";
 const AVAILABILITY_TIMEOUT_MS = parseInt(process.env.CUDDLYNEST_BE_TIMEOUT_MS || "25000", 10);
 
-// Synthetic viewport around the destination centre. Sized like the captured
-// Paris search at zoom_level 13 (~9.6 km tall x ~18 km wide).
+// Synthetic viewport around the destination centre (~9.6 km tall x ~18 km wide,
+// like a city-level map view on the site).
 const HALF_HEIGHT_KM = 4.8;
 const HALF_WIDTH_KM = 9.0;
-const ZOOM_LEVEL = 13;
 
-// One per server process; the site generates it client-side (16 hex chars).
-const SESSION_ID = randomBytes(8).toString("hex");
-
-// Flip to true only after mapAvailabilityResponse() has been checked against a
-// real captured response (scripts/capture-availability.mjs). See docs/be-api-notes.md.
-const MAPPING_VERIFIED = false;
+// The response mapping below has been checked against a real staging response
+// (Singapore, 2026-11-09). Set back to false if the response shape changes.
+const MAPPING_VERIFIED = true;
 
 // ---------------------------------------------------------------------------
 // Types
@@ -80,11 +77,20 @@ type Log = (level: "info" | "warn" | "error", message: string, data?: any) => vo
 export interface LivePricing {
   price: number | null; // discounted / final price shown
   originalPrice: number | null; // struck-through price
+  discount: number | null;
   taxesAndFees: number | null;
   freeCancellation: boolean | null;
-  currency: string;
+  breakfastIncluded: boolean | null;
+  /** null when the API doesn't say (the staging response carries no currency). */
+  currency: string | null;
   checkin: string;
   checkout: string;
+}
+
+export interface NearbyPlace {
+  name: string;
+  distanceKm: number | null;
+  walkingMinutes: number | null;
 }
 
 /** Non-price, live-only listing context that has no slot in the shared Stay shape. */
@@ -92,6 +98,8 @@ export interface LiveDetails {
   neighborhood: string | null;
   distanceFromCenterKm: number | null;
   reviewCount: number | null;
+  /** Nearby places by category (landmark, station, parks, food, shopping, airport…). */
+  nearby: Record<string, NearbyPlace[]>;
 }
 
 /** A static Stay (same shape as the DB path) plus separate `details` and `pricing`. */
@@ -99,6 +107,8 @@ export type LiveStay = Stay & { details: LiveDetails; pricing: LivePricing };
 
 export interface LiveStaysResult {
   resolvedLocation: { location: string; lat: number; lng: number; locationType?: string };
+  /** True when the backend answered from its own cache rather than suppliers. */
+  cached?: boolean;
   stays: LiveStay[];
 }
 
@@ -113,52 +123,39 @@ export interface LiveSearchProvider {
 // Request building
 // ---------------------------------------------------------------------------
 
-function boundingBox(lat: number, lng: number) {
+function viewportBounds(lat: number, lng: number) {
   const dLat = HALF_HEIGHT_KM / 110.574;
   const dLng = HALF_WIDTH_KM / (111.32 * Math.max(Math.cos((lat * Math.PI) / 180), 0.01));
-  // As captured: a = north-east corner, b = south-west corner.
-  return { aLat: lat + dLat, aLng: lng + dLng, bLat: lat - dLat, bLng: lng - dLng };
-}
-
-function placeLabel(p: DestinationCandidate): string {
-  return [p.city || p.name, p.state, p.country].filter(Boolean).join(", ");
-}
-
-/** Request body using the field names seen in the live capture. */
-export function buildAvailabilityBody(
-  req: LiveStaysRequest,
-  place: DestinationCandidate & { lat: number; lon: number },
-  requestId: string = randomUUID(),
-) {
   return {
-    location: placeLabel(place),
-    property_count: place.propertyCount != null ? String(place.propertyCount) : undefined,
-    location_type: place.type,
-    checkin: req.checkin,
-    checkout: req.checkout,
-    adults: req.adults,
-    rooms: req.rooms,
-    currency: req.currency,
-    numberOfChildrenBelow17: req.children,
-    child_ages: req.childAges,
-    numberOfChildrenBelow2: req.infants,
-    ...boundingBox(place.lat, place.lon),
-    lat: place.lat,
-    lng: place.lon,
-    type: "viewport",
-    landmarks: [],
-    // The captured "price": "Lowest" was only the UI's sort choice; left out.
-    filter_info: { expanded_map: false },
-    page: 1,
-    sessionid: SESSION_ID,
-    zoom_level: ZOOM_LEVEL,
-    user_country: process.env.CUDDLYNEST_BE_USER_COUNTRY || "United States",
-    requestId,
-    is_crypto: 0,
+    northeast: { lat: lat + dLat, lng: lng + dLng },
+    southwest: { lat: lat - dLat, lng: lng - dLng },
   };
 }
 
-async function resolvePlace(destination: string) {
+type Place = DestinationCandidate & { lat: number; lon: number };
+
+function placeParts(p: Place) {
+  return { city: p.city || p.name || "", state: p.state || "", country: p.country || "" };
+}
+
+/** Search message, with the field names of the backend's sample request. */
+export function buildAvailabilityRequest(req: LiveStaysRequest, place: Place) {
+  return {
+    ...placeParts(place),
+    viewport_bounds: viewportBounds(place.lat, place.lon),
+    autosuggestion_id: place.id,
+    page: 1,
+    checkin: req.checkin,
+    checkout: req.checkout,
+    room_count: req.rooms,
+    adult_count: req.adults,
+    // TODO(AO-16): the sample has no field for child ages or infants; ask FE.
+    child_count: req.children,
+    sort: ["Recommended"],
+  };
+}
+
+async function resolvePlace(destination: string): Promise<Place> {
   const places = await resolveDestinations(destination);
   const anchor = pickAnchorPlace(destination, places);
   if (!anchor || anchor.lat == null || anchor.lon == null) {
@@ -167,41 +164,80 @@ async function resolvePlace(destination: string) {
       `Could not resolve "${destination}" to coordinates for the availability search`,
     );
   }
-  return anchor as DestinationCandidate & { lat: number; lon: number };
+  return anchor as Place;
 }
 
 // ---------------------------------------------------------------------------
-// Call
+// Call (WebSocket)
 // ---------------------------------------------------------------------------
 
-async function postAvailability(body: unknown, token: string) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), AVAILABILITY_TIMEOUT_MS);
-  try {
-    const res = await fetch(AVAILABILITY_URL, {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(body),
-      signal: controller.signal,
+interface AvailabilityMessage {
+  event: "availability";
+  data: unknown;
+  is_cached?: boolean;
+}
+
+class HandshakeFailed extends Error {}
+
+/** One search over the socket: resolves with the "availability" event, then closes. */
+function requestOverSocket(message: unknown, token: string): Promise<AvailabilityMessage> {
+  return new Promise((resolve, reject) => {
+    let opened = false;
+    let settled = false;
+    // Node's built-in WebSocket accepts handshake headers as a non-standard option.
+    const ws: WebSocket = new (WebSocket as any)(AVAILABILITY_URL, {
+      headers: { Origin: AVAILABILITY_ORIGIN, Authorization: `Bearer ${token}` },
     });
-    return { status: res.status, text: await res.text() };
-  } catch (err) {
-    if ((err as any)?.name === "AbortError") {
-      throw new BeApiError("timeout", `Availability API exceeded ${AVAILABILITY_TIMEOUT_MS}ms`);
-    }
-    throw new BeApiError("unavailable", `Availability API unreachable (${(err as any)?.code ?? "network"})`);
-  } finally {
-    clearTimeout(timer);
-  }
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try {
+        ws.close();
+      } catch {
+        /* already closed */
+      }
+      fn();
+    };
+    const timer = setTimeout(
+      () => finish(() => reject(new BeApiError("timeout", `Availability API sent no results within ${AVAILABILITY_TIMEOUT_MS}ms`))),
+      AVAILABILITY_TIMEOUT_MS,
+    );
+    ws.onopen = () => {
+      opened = true;
+      ws.send(JSON.stringify(message));
+    };
+    ws.onmessage = (ev) => {
+      let msg: any;
+      try {
+        msg = JSON.parse(String(ev.data));
+      } catch {
+        return; // ignore non-JSON frames
+      }
+      if (msg?.event === "availability") finish(() => resolve(msg));
+      else if (msg?.event === "error" || (msg?.error && !msg?.event)) {
+        const detail = String(msg?.message ?? msg?.error ?? "error").slice(0, 200);
+        finish(() => reject(new BeApiError("http_error", `Availability API error: ${detail}`)));
+      }
+      // "connection", "info", "filter", "sort": not needed here.
+    };
+    ws.onerror = () => {
+      if (!opened) finish(() => reject(new HandshakeFailed()));
+    };
+    ws.onclose = (ev) => {
+      finish(() =>
+        reject(
+          opened
+            ? new BeApiError("unavailable", `Availability socket closed before results (code ${ev.code})`)
+            : new HandshakeFailed(),
+        ),
+      );
+    };
+  });
 }
 
-/** POST with a Bearer token; on 401 the cached token is dropped and the call retried once. */
-async function callAvailability(body: unknown): Promise<unknown> {
-  let res;
+/** Search with a Bearer token; a refused handshake drops the cached token and retries once. */
+async function callAvailability(message: unknown): Promise<AvailabilityMessage> {
   for (let attempt = 0; attempt < 2; attempt++) {
     let token: string;
     try {
@@ -210,31 +246,27 @@ async function callAvailability(body: unknown): Promise<unknown> {
       if (e instanceof AuthError) throw new BeApiError(e.code, e.message);
       throw e;
     }
-    res = await postAvailability(body, token);
-    if (res.status !== 401 || attempt === 1) break;
-    invalidateAccessToken();
+    try {
+      return await requestOverSocket(message, token);
+    } catch (e) {
+      if (!(e instanceof HandshakeFailed)) throw e;
+      if (attempt === 0) invalidateAccessToken();
+    }
   }
-  if (res!.status === 401 || res!.status === 403) {
-    throw new BeApiError("unauthorized", `Availability API rejected the token (HTTP ${res!.status})`, res!.status);
-  }
-  if (res!.status < 200 || res!.status >= 300) {
-    throw new BeApiError("http_error", `Availability API returned HTTP ${res!.status}`, res!.status);
-  }
-  try {
-    return JSON.parse(res!.text);
-  } catch {
-    throw new BeApiError("invalid_response", "Availability API returned non-JSON", res!.status);
-  }
+  throw new BeApiError(
+    "unauthorized",
+    "Availability socket refused the connection (handshake failed twice; check token, Origin and URL)",
+  );
 }
 
 // ---------------------------------------------------------------------------
 // Response mapping
 // ---------------------------------------------------------------------------
 //
-// ASSUMED FIELD NAMES. Nothing below has been checked against a real response
-// yet: the listing fields are the ones visible on the rendered results page,
-// named by guesswork (see docs/be-api-notes.md). Every field lists aliases;
-// adjusting to the real response should only mean editing these tables.
+// Field names verified against a real staging response (listed first in each
+// alias list). The other aliases are kept so small backend renames don't break
+// the mapping; adjusting to a changed response should only mean editing these
+// tables.
 //
 // The mapper never throws on unexpected input. It returns a MappingReport
 // naming which expected fields were missing and which response keys went unused
@@ -250,39 +282,47 @@ const LISTINGS_PATHS = [
 const FIELDS = {
   // static
   id: ["product_id", "productId", "id"],
-  name: ["name", "product_title", "title"],
+  name: ["hotel_name", "name", "product_title", "title"],
   slug: ["slug", "seourl"],
-  propertyType: ["propertyType", "property_type", "home_type"],
-  starRating: ["starRating", "star_rating", "stars"],
-  reviewScore: ["reviewScore", "review_score", "grs_new", "rating"],
-  reviewLabel: ["reviewLabel", "review_label", "grs_adjective_new"],
-  reviewCount: ["reviewCount", "review_count", "grs_total_reviews"],
+  propertyType: ["main_property_type", "propertyType", "property_type", "home_type"],
+  starRating: ["star_rating", "starRating", "stars"],
+  reviewScore: ["grs_new", "reviewScore", "review_score", "rating"],
+  reviewLabel: ["grs_adjective_new", "reviewLabel", "review_label"],
+  reviewCount: ["grs_total_reviews", "reviewCount", "review_count"],
   neighborhood: ["neighborhood", "neighbourhood", "area"],
-  distanceFromCenter: ["distanceFromCenter", "distance_from_center", "distance"],
-  coverImage: ["coverImage", "cover_image", "image", "images[0]", "product_images[0]"],
+  distanceFromCenter: ["distance", "distanceFromCenter", "distance_from_center"],
+  distanceUnit: ["distance_unit"],
+  coverImage: ["product_images[0]", "coverImage", "cover_image", "image", "images[0]"],
   url: ["url", "listingUrl", "listing_url"],
   // optional static (not seen on the page; used when present)
   city: ["city", "location.city"],
   country: ["country", "location.country"],
-  lat: ["lat", "latitude", "location.lat"],
-  lng: ["lng", "lon", "longitude", "location.lng"],
+  // GeoJSON point: coordinates are [lng, lat].
+  lat: ["location.coordinates[1]", "lat", "latitude", "location.lat"],
+  lng: ["location.coordinates[0]", "lng", "lon", "longitude", "location.lng"],
+  nearby: ["tags"],
   description: ["description", "short_description"],
   amenities: ["amenities", "featured_amenities"],
   // pricing
-  price: ["price", "discountedPrice", "discounted_price", "finalPrice", "final_price"],
-  originalPrice: ["originalPrice", "original_price", "strikePrice", "strike_price"],
-  taxesAndFees: ["taxesAndFees", "taxes_and_fees", "taxes"],
-  freeCancellation: ["freeCancellation", "free_cancellation", "isFreeCancellation"],
+  price: ["discounted_price", "price", "discountedPrice", "finalPrice", "final_price"],
+  originalPrice: ["lowest_price", "originalPrice", "original_price", "strikePrice", "strike_price"],
+  discount: ["discount"],
+  taxesAndFees: ["fees", "taxesAndFees", "taxes_and_fees", "taxes"],
+  freeCancellation: ["is_free_cancellation", "freeCancellation", "free_cancellation", "isFreeCancellation"],
+  breakfastIncluded: ["is_breakfast_included", "breakfastIncluded"],
   currency: ["currency"],
 } as const;
 
 type Field = keyof typeof FIELDS;
 
-/** Seen on the rendered results page — reported when missing. */
+/**
+ * Always present in the real response — reported when missing. (Free
+ * cancellation and neighbourhood are optional per listing, so they're mapped
+ * when present but not reported.)
+ */
 const EXPECTED: Field[] = [
   "id", "name", "propertyType", "starRating", "reviewScore", "reviewLabel", "reviewCount",
-  "neighborhood", "distanceFromCenter", "coverImage", "price", "originalPrice",
-  "taxesAndFees", "freeCancellation",
+  "distanceFromCenter", "coverImage", "price", "originalPrice", "taxesAndFees",
 ];
 
 export interface MappingReport {
@@ -370,10 +410,29 @@ function slugTag(s: string): string {
 export interface MappingContext {
   checkin: string;
   checkout: string;
-  currency: string;
+  currency: string | null;
   /** City/country of the searched place, used when a listing doesn't carry its own. */
   city?: string | null;
   country?: string | null;
+}
+
+/** `{ landmark: [{ name, distance, walking_distance }], … }` -> NearbyPlace lists (max 3 each). */
+function toNearby(tags: unknown): Record<string, NearbyPlace[]> {
+  if (!tags || typeof tags !== "object" || Array.isArray(tags)) return {};
+  const out: Record<string, NearbyPlace[]> = {};
+  for (const [category, items] of Object.entries(tags as Record<string, unknown>)) {
+    if (!Array.isArray(items)) continue;
+    const places = items
+      .map((it: any) => ({
+        name: toStr(it?.name) ?? "",
+        distanceKm: toNumber(it?.distance),
+        walkingMinutes: toNumber(it?.walking_distance),
+      }))
+      .filter((p) => p.name)
+      .slice(0, 3);
+    if (places.length) out[category] = places;
+  }
+  return out;
 }
 
 function mapListing(listing: any, ctx: MappingContext, missing: Set<Field>, used: Set<string>): LiveStay | null {
@@ -410,10 +469,16 @@ function mapListing(listing: any, ctx: MappingContext, missing: Set<Field>, used
   const lat = toNumber(get("lat"));
   const lng = toNumber(get("lng"));
 
+  // With no reviews the API still sends a label (e.g. "poor"); don't show it.
+  const hasReviews = reviewCount == null || reviewCount > 0;
+  const breakfast = toBool(pick(listing, "breakfastIncluded", used));
+  const nearby = toNearby(pick(listing, "nearby", used));
+  const airport = nearby.airport?.[0];
   const tags = [
     propertyType && slugTag(propertyType),
     stars && stars > 0 ? `${stars}-star` : null,
-    reviewLabel && slugTag(reviewLabel),
+    hasReviews && reviewLabel ? slugTag(reviewLabel) : null,
+    breakfast ? "breakfast-included" : null,
   ].filter((t): t is string => !!t);
 
   const stay: Stay = {
@@ -427,34 +492,40 @@ function mapListing(listing: any, ctx: MappingContext, missing: Set<Field>, used
       country: toStr(get("country")) ?? ctx.country ?? null,
       lat,
       lng,
-      nearest_airport: null,
+      nearest_airport: airport ? { name: airport.name, distance_km: airport.distanceKm } : null,
     },
     tags: [...new Set(tags)],
     description_short: toStr(get("description"))?.slice(0, 300) ?? null,
     amenities: Array.isArray(amenities)
       ? amenities.map((a: any) => toStr(a?.name ?? a)).filter((a): a is string => !!a)
       : [],
-    rating: reviewScore || null,
+    rating: hasReviews ? reviewScore || null : null,
     cover_image_url: coverUrl,
     url: rawUrl
       ? /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://www.cuddlynest.com/${rawUrl.replace(/^\/+/, "")}`
       : `https://www.cuddlynest.com/hotel/-${id}`,
   };
 
-  const distance = get("distanceFromCenter");
+  const distance = toNumber(get("distanceFromCenter"));
+  const unit = toStr(pick(listing, "distanceUnit", used))?.toLowerCase();
+  const distanceKm =
+    distance == null ? null : unit === "mi" ? Math.round(distance * 1.609 * 100) / 100 : unit === "m" ? distance / 1000 : distance;
   return {
     ...stay,
     details: {
       neighborhood: toStr(get("neighborhood")),
-      distanceFromCenterKm: toNumber(distance),
+      distanceFromCenterKm: distanceKm,
       reviewCount,
+      nearby,
     },
     pricing: {
       price: toNumber(get("price")),
       originalPrice: toNumber(get("originalPrice")),
+      discount: toNumber(pick(listing, "discount", used)),
       taxesAndFees: toNumber(get("taxesAndFees")),
       freeCancellation: toBool(get("freeCancellation")),
-      currency: toStr(get("currency")) ?? ctx.currency,
+      breakfastIncluded: breakfast,
+      currency: toStr(pick(listing, "currency", used)) ?? ctx.currency,
       checkin: ctx.checkin,
       checkout: ctx.checkout,
     },
@@ -531,25 +602,26 @@ export const beApiSearchProvider: LiveSearchProvider = {
       throw new BeApiError("missing_dates", "checkin and checkout (YYYY-MM-DD) are required for source \"live\"");
     }
     const place = await resolvePlace(req.destination);
-    const body = buildAvailabilityBody(req, place);
-    const json = await callAvailability(body);
+    const message = buildAvailabilityRequest(req, place);
+    const result = await callAvailability(message);
 
-    // Local inspection aid: save the raw response when asked to (never in production).
+    // Local inspection aid: save the raw availability event when asked to (never in production).
     const captureFile = process.env.CUDDLYNEST_BE_CAPTURE_FILE;
     if (captureFile) {
       try {
-        writeFileSync(captureFile, JSON.stringify(json, null, 2));
+        writeFileSync(captureFile, JSON.stringify(result, null, 2));
       } catch {
         /* best effort */
       }
     }
 
-    const { stays, report } = mapAvailabilityResponse(json, {
+    const { stays, report } = mapAvailabilityResponse(result, {
       checkin: req.checkin,
       checkout: req.checkout,
-      currency: req.currency,
-      city: place.city ?? place.name ?? null,
-      country: place.country ?? null,
+      // The search message carries no currency and the response doesn't state one.
+      currency: null,
+      city: message.city || null,
+      country: message.country || null,
     });
     req.log?.(
       report.mapped && !Object.keys(report.missingExpected).length ? "info" : "warn",
@@ -557,8 +629,6 @@ export const beApiSearchProvider: LiveSearchProvider = {
       { summary: summarizeReport(report) },
     );
 
-    // The mapping above uses ASSUMED field names (simulated fixture only). Until
-    // it's been checked against a real response, don't hand its output to callers.
     if (!MAPPING_VERIFIED) {
       throw new BeApiError(
         "response_mapping_pending",
@@ -568,7 +638,13 @@ export const beApiSearchProvider: LiveSearchProvider = {
     }
 
     return {
-      resolvedLocation: { location: body.location, lat: body.lat, lng: body.lng, locationType: place.type },
+      resolvedLocation: {
+        location: [message.city, message.state, message.country].filter(Boolean).join(", "),
+        lat: place.lat,
+        lng: place.lon,
+        locationType: place.type,
+      },
+      cached: result.is_cached,
       stays,
     };
   },

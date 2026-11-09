@@ -96,6 +96,7 @@ export interface DestinationCandidate {
   city?: string;
   state?: string;
   country?: string;
+  id?: string; // the autosuggestion API's `_id`, e.g. "LO258" (availability's autosuggestion_id)
   slug?: string; // the autosuggestion API's own slug, e.g. "santa-marta"
   type?: string; // "City" | "POI" | "Airport" | "Region" | "State" | "Country"
   lat?: number;
@@ -137,9 +138,10 @@ export async function resolveDestinations(query: string): Promise<DestinationCan
   const rows = await fetchAutosuggest(query);
   return rows
     .filter((row) => !HOTEL_ROW.test(String(row?._id ?? "")))
-    .map((row) => row?._source ?? row)
+    .map((row) => ({ ...(row?._source ?? row), __id: row?._id }))
     .filter(Boolean)
     .map((s: any) => ({
+      id: s.__id || undefined,
       name: s.name,
       city: s.city || undefined,
       state: s.state || undefined,

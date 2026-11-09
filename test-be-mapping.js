@@ -102,6 +102,30 @@ for (const [label, input] of [
 check("unknown container: report says listings not found",
   mapAvailabilityResponse({ payload: {} }, CTX).report.listingsPath === null);
 
+console.log("\n=== [CAPTURED STAGING] mapAvailabilityResponse — real WebSocket availability event ===");
+{
+  const REAL = JSON.parse(readFileSync(join(__dirname, "fixtures", "staging-ws-availability-sample.json"), "utf8"));
+  const { stays: real, report: rr } = mapAvailabilityResponse(REAL, { ...CTX, currency: null, city: "Singapore", country: "Singapore" });
+  check("[REAL] all listings mapped, no expected field missing",
+    rr.listingsPath === "data" && rr.mapped === REAL.data.length && Object.keys(rr.missingExpected).length === 0);
+  const src = REAL.data[0];
+  const s0 = real[0];
+  check("[REAL] name / category / id from hotel_name / main_property_type / product_id",
+    s0.name === src.hotel_name && s0.category === src.main_property_type && s0.id === String(src.product_id));
+  check("[REAL] GeoJSON [lng, lat] read in the right order",
+    s0.location.lat === src.location.coordinates[1] && s0.location.lng === src.location.coordinates[0]);
+  check("[REAL] pricing from discounted_price / lowest_price / fees / discount",
+    s0.pricing.price === src.discounted_price && s0.pricing.originalPrice === src.lowest_price &&
+    s0.pricing.taxesAndFees === src.fees && s0.pricing.discount === src.discount && s0.pricing.currency === null);
+  check("[REAL] nearby places by category, airport also fills nearest_airport",
+    Object.keys(s0.details.nearby).length > 0 &&
+    (src.tags?.airport?.length ? s0.location.nearest_airport?.name === src.tags.airport[0].name : true));
+  check("[REAL] no rating or review tag when a listing has 0 reviews",
+    real.every((s, i) => REAL.data[i].grs_total_reviews > 0 || (s.rating === null && !s.tags.includes(String(REAL.data[i].grs_adjective_new).toLowerCase()))));
+  check("[REAL] static fields carry no price/availability",
+    real.every((s) => { const { pricing, ...rest } = s; return priceKeys(rest).length === 0; }));
+}
+
 console.log("\n=== parseReviewText ===");
 const p = parseReviewText("8.6 Superb (763)");
 check("\"8.6 Superb (763)\" -> 8.6 / Superb / 763", p?.score === 8.6 && p.label === "Superb" && p.count === 763);
