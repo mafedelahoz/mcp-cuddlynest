@@ -1,0 +1,921 @@
+{
+ "_note": "Real /v2.2/activities/ responses from staging (Bangkok 5 + Dubai 2, 2026-11-16), merged and trimmed: score_breakdown and filters removed. Staging includes QA test activities.",
+ "empty_result_title": null,
+ "empty_result_description": null,
+ "activities": [
+  {
+   "id": "69c2cc38a002ec5ab1012d11",
+   "title": "Bangkok sub_category_id=2",
+   "descriptions": "",
+   "images": [
+    {
+     "small": "",
+     "medium": "",
+     "large": "https://res.klook.com/image/upload/activities/phcahdigv8cziilhjr64.jpg",
+     "extra_large": "https://res.klook.com/image/upload/activities/phcahdigv8cziilhjr64.jpg",
+     "credits": null,
+     "alt_text": "sub_category_id=2",
+     "description": ""
+    }
+   ],
+   "geoCode": {
+    "lat": 13.7563309,
+    "lng": 100.5017651
+   },
+   "ratings": {
+    "average": "",
+    "total": 0
+   },
+   "tags": [
+    "Free Cancellation",
+    "Instant Book",
+    "Mobile Ticket",
+    "Biking",
+    "Cycling",
+    "Bike Tour"
+   ],
+   "category": "Tours",
+   "subCategories": [
+    "Biking Tour"
+   ],
+   "price": {
+    "currency": "USD",
+    "discount": 0,
+    "discountPrice": 0,
+    "price": 1,
+    "available": true,
+    "originalPrice": 0.13,
+    "packageId": "109954",
+    "skuId": "822428113590"
+   },
+   "duration": null,
+   "duration_hours": null,
+   "iso_duration": null,
+   "duration_start_timestamp": 0,
+   "duration_end_timestamp": 0,
+   "limitedAvailability": false,
+   "languages": [
+    "th",
+    "vi",
+    "id",
+    "en",
+    "ms",
+    "ko",
+    "zh",
+    "ja"
+   ],
+   "wheelchair_access": false,
+   "isfamily_friendly": false,
+   "group_type": "",
+   "city_name": null,
+   "country_name": null,
+   "nearby_activity": false,
+   "adp_data": null
+  },
+  {
+   "id": "6936d5710f7de648237b1e12",
+   "title": "Bangkok test activity",
+   "descriptions": "Single lunch SVIP + clothing. Daily limited offers. Awaji Island One Day Tour. \nHello World.",
+   "images": [
+    {
+     "small": "",
+     "medium": "",
+     "large": "https://res.klook.com/image/upload/activities/r2vogqjlkbqfnb9yxezs.jpg",
+     "extra_large": "https://res.klook.com/image/upload/activities/r2vogqjlkbqfnb9yxezs.jpg",
+     "credits": null,
+     "alt_text": "Bangkok test activity",
+     "description": ""
+    },
+    {
+     "small": "",
+     "medium": "",
+     "large": "https://res.klook.com/image/upload/activities/hdgw75yioiquhmdkjcrx.jpg",
+     "extra_large": "https://res.klook.com/image/upload/activities/hdgw75yioiquhmdkjcrx.jpg",
+     "credits": null,
+     "alt_text": "test activity",
+     "description": ""
+    }
+   ],
+   "geoCode": {
+    "lat": 13.7563309,
+    "lng": 100.5017651
+   },
+   "ratings": {
+    "average": "",
+    "total": 0
+   },
+   "tags": [
+    "Free Cancellation",
+    "Instant Book",
+    "Mobile Ticket",
+    "VR",
+    "Simulation",
+    "Virtual Reality"
+   ],
+   "category": "Attractions",
+   "subCategories": [
+    "VR & Simulation"
+   ],
+   "price": {
+    "currency": "USD",
+    "discount": 0,
+    "discountPrice": 0,
+    "price": 1.07,
+    "available": true,
+    "originalPrice": 1.02,
+    "packageId": "6936d5720f7de648237b1e18",
+    "skuId": "822428064800"
+   },
+   "duration": null,
+   "duration_hours": null,
+   "iso_duration": null,
+   "duration_start_timestamp": 0,
+   "duration_end_timestamp": 0,
+   "limitedAvailability": false,
+   "languages": [
+    "th",
+    "vi",
+    "id",
+    "en",
+    "ms",
+    "ko",
+    "de",
+    "zh",
+    "ja"
+   ],
+   "wheelchair_access": false,
+   "isfamily_friendly": false,
+   "group_type": "",
+   "city_name": null,
+   "country_name": null,
+   "nearby_activity": false,
+   "adp_data": null
+  },
+  {
+   "id": "6a843faacf0f7ab6c3478d42",
+   "title": "Private Half-Day Bangkok City Tour Explore Grand Palace",
+   "descriptions": "Discover Bangkok’s rich cultural heritage on a private half-day city tour, featuring visits to the Grand Palace, Wat Pho, and Wat Traimit. Begin with a tour of the Grand Palace, where you’ll admire the intricate architecture and royal history. Next, marvel at the sacred jade Buddha and the famous Reclining Buddha at Wat Pho. End your journey at Wat Traimit, home to the awe-inspiring Golden Buddha, a symbol of Thailand's spiritual legacy.",
+   "images": [
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/15/4f/7e/f6.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/15/4f/7e/f6.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/15/4f/7e/f6.jpg",
+     "caption": "Private Half-Day Bangkok City Tour Explore Grand Palace",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/15/4f/7e/fa.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/15/4f/7e/fa.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/15/4f/7e/fa.jpg",
+     "caption": "Private Half-Day Bangkok City Tour Explore Grand Palace",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/15/4f/7e/fd.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/15/4f/7e/fd.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/15/4f/7e/fd.jpg",
+     "caption": "Private Half-Day Bangkok City Tour Explore Grand Palace",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/15/4f/7f/0c.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/15/4f/7f/0c.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/15/4f/7f/0c.jpg",
+     "caption": "Private Half-Day Bangkok City Tour Explore Grand Palace",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/15/4f/7f/12.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/15/4f/7f/12.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/15/4f/7f/12.jpg",
+     "caption": "Private Half-Day Bangkok City Tour Explore Grand Palace",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/15/4f/7f/15.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/15/4f/7f/15.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/15/4f/7f/15.jpg",
+     "caption": "Private Half-Day Bangkok City Tour Explore Grand Palace",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/15/4f/7f/16.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/15/4f/7f/16.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/15/4f/7f/16.jpg",
+     "caption": "Private Half-Day Bangkok City Tour Explore Grand Palace",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/15/4f/7f/18.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/15/4f/7f/18.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/15/4f/7f/18.jpg",
+     "caption": "Private Half-Day Bangkok City Tour Explore Grand Palace",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/15/4f/7f/26.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/15/4f/7f/26.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/15/4f/7f/26.jpg",
+     "caption": "Private Half-Day Bangkok City Tour Explore Grand Palace",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    }
+   ],
+   "geoCode": {
+    "lat": 13.7234186,
+    "lng": 100.4762319
+   },
+   "ratings": {
+    "average": "4.7",
+    "total": 6
+   },
+   "tags": [
+    "Free Cancellation",
+    "Instant Book",
+    "Mobile Ticket",
+    "Private Tour",
+    "Sightseeing",
+    "Photography Tours"
+   ],
+   "category": "Tours",
+   "subCategories": [
+    "Private Sightseeing Tours",
+    "Photography Tours",
+    "Bus Tours",
+    "Car Tours",
+    "Architecture Tours",
+    "Half-day Tours"
+   ],
+   "price": {
+    "currency": "USD",
+    "discount": 0,
+    "discountPrice": 0,
+    "price": 220.5,
+    "available": true,
+    "originalPrice": 210,
+    "packageId": "6a843faacf0f7ab6c3478d43",
+    "skuId": "DEFAULT_ADULT"
+   },
+   "duration": 240,
+   "duration_hours": "4 hours",
+   "iso_duration": "PT4H",
+   "duration_start_timestamp": 0,
+   "duration_end_timestamp": 14400000,
+   "limitedAvailability": false,
+   "languages": [
+    "EN"
+   ],
+   "wheelchair_access": false,
+   "isfamily_friendly": true,
+   "group_type": "private",
+   "city_name": null,
+   "country_name": null,
+   "nearby_activity": false,
+   "adp_data": null
+  },
+  {
+   "id": "6a843a44cf0f7ab6c3478404",
+   "title": "Siem Reap Tour from Bangkok 4D3N Tour Package",
+   "descriptions": "Embark on an unforgettable journey from Bangkok to the heart of the ancient Khmer Empire with our Siem Reap tour from Bangkok 4-day 3-night Tour package. Discover the enchanting beauty and mystical allure of Cambodia's most iconic temples, all while enjoying the seamless comfort of a meticulously planned itinerary. This package is perfect for travelers seeking a deep dive into history without the stress of logistics. Your adventure begins the moment you land at Bangkok Airport (BKK or DMK), where your private driver will greet you for a comfortable and scenic overland transfer directly to Siem Reap. Forget the hassle of public transport and border crossings; we handle everything for you.",
+   "images": [
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/51/1a.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/16/28/51/1a.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/51/1a.jpg",
+     "caption": "",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/53/88.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/16/28/53/88.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/53/88.jpg",
+     "caption": "",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/34/27/3e.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/16/34/27/3e.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/34/27/3e.jpg",
+     "caption": "",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/50/5e.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/16/28/50/5e.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/50/5e.jpg",
+     "caption": "",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/50/e3.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/16/28/50/e3.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/50/e3.jpg",
+     "caption": "",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/51/f3.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/16/28/51/f3.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/51/f3.jpg",
+     "caption": "",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/53/b3.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/16/28/53/b3.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/53/b3.jpg",
+     "caption": "",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/50/b5.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/16/28/50/b5.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/50/b5.jpg",
+     "caption": "",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/4e/88.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/16/28/4e/88.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/4e/88.jpg",
+     "caption": "",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/4e/a3.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/16/28/4e/a3.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/4e/a3.jpg",
+     "caption": "",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/4d/58.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/16/28/4d/58.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/4d/58.jpg",
+     "caption": "",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/4f/a5.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/16/28/4f/a5.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/4f/a5.jpg",
+     "caption": "",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/52/30.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/16/28/52/30.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/52/30.jpg",
+     "caption": "",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/52/0f.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/16/28/52/0f.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/52/0f.jpg",
+     "caption": "",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/50/9a.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/16/28/50/9a.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/50/9a.jpg",
+     "caption": "",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/34/26/9a.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/16/34/26/9a.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/34/26/9a.jpg",
+     "caption": "",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/50/eb.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/16/28/50/eb.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/50/eb.jpg",
+     "caption": "",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/4e/33.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/16/28/4e/33.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/16/28/4e/33.jpg",
+     "caption": "",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    }
+   ],
+   "geoCode": {
+    "lat": 13.7234186,
+    "lng": 100.4762319
+   },
+   "ratings": {
+    "average": "0.0",
+    "total": 0
+   },
+   "tags": [
+    "Free Cancellation",
+    "Instant Book",
+    "Mobile Ticket",
+    "Private Tour",
+    "Sightseeing",
+    "Historical Tours"
+   ],
+   "category": "Tours",
+   "subCategories": [
+    "Private Sightseeing Tours",
+    "Historical Tours",
+    "Cultural Tours",
+    "Multi-day Tours",
+    "Bus Tours",
+    "Car Tours"
+   ],
+   "price": {
+    "currency": "USD",
+    "discount": 0,
+    "discountPrice": 0,
+    "price": 1564.5,
+    "available": true,
+    "originalPrice": 1490,
+    "packageId": "6a843a44cf0f7ab6c3478405",
+    "skuId": "TG1_ADULT"
+   },
+   "duration": 5760,
+   "duration_hours": "4 days",
+   "iso_duration": "P4D",
+   "duration_start_timestamp": 0,
+   "duration_end_timestamp": 345600000,
+   "limitedAvailability": false,
+   "languages": [
+    "EN"
+   ],
+   "wheelchair_access": false,
+   "isfamily_friendly": false,
+   "group_type": "private",
+   "city_name": null,
+   "country_name": null,
+   "nearby_activity": false,
+   "adp_data": null
+  },
+  {
+   "id": "6936d3ff0f7de648237b1cf1",
+   "title": "Cartoon Network Amazone Add Ons",
+   "descriptions": "Enhance your day of fun at the world's first Cartoon Network-themed waterpark: Cartoon Network Amazone in Pattaya. Based on the popular children's channel, this family-friendly water park is sure to excite thrill-seekers and animation fanatics alike! With these extra packages that you can add on to your Cartoon Network Amazone ticket, you'll be getting the best value on food vouchers, locker rental, private cabana rental and incredibly relaxing spa treatments, so you can guarantee it'll be an enjoyable day out for the whole family.",
+   "images": [
+    {
+     "small": "",
+     "medium": "",
+     "large": "https://res.klook.com/image/upload/activities/yadrysp7gosi2zlvfkqc.jpg",
+     "extra_large": "https://res.klook.com/image/upload/activities/yadrysp7gosi2zlvfkqc.jpg",
+     "credits": null,
+     "alt_text": "Cartoon Network Amazone Add Ons",
+     "description": ""
+    },
+    {
+     "small": "",
+     "medium": "",
+     "large": "https://res.klook.com/image/upload/activities/c5ce61c6-Cartoon-Network-Amazone-Package-Add-Ons.jpg",
+     "extra_large": "https://res.klook.com/image/upload/activities/c5ce61c6-Cartoon-Network-Amazone-Package-Add-Ons.jpg",
+     "credits": null,
+     "alt_text": "Pattaya Cartoon Network Amazone",
+     "description": "Enjoy a day out for the whole family with add-ons to please everyone"
+    },
+    {
+     "small": "",
+     "medium": "",
+     "large": "https://res.klook.com/image/upload/activities/a6861462-Cartoon-Network-Amazone-Package-Add-Ons.jpg",
+     "extra_large": "https://res.klook.com/image/upload/activities/a6861462-Cartoon-Network-Amazone-Package-Add-Ons.jpg",
+     "credits": null,
+     "alt_text": "Cartoon Network Amazone Spa",
+     "description": "Relax with a choice of massage packages"
+    },
+    {
+     "small": "",
+     "medium": "",
+     "large": "https://res.klook.com/image/upload/activities/53f4c838-Cartoon-Network-Amazone-Package-Add-Ons.jpg",
+     "extra_large": "https://res.klook.com/image/upload/activities/53f4c838-Cartoon-Network-Amazone-Package-Add-Ons.jpg",
+     "credits": null,
+     "alt_text": "Cartoon Network Amazone Massage",
+     "description": "Choose a 1 hour foot massage, neck and shoulder massage or Thai massage"
+    },
+    {
+     "small": "",
+     "medium": "",
+     "large": "https://res.klook.com/image/upload/activities/6ed4eb16-Cartoon-Network-Amazone-Package-Add-Ons.jpg",
+     "extra_large": "https://res.klook.com/image/upload/activities/6ed4eb16-Cartoon-Network-Amazone-Package-Add-Ons.jpg",
+     "credits": null,
+     "alt_text": "Cartoon Network Amazone locker rental",
+     "description": "Keep your belongings safely stored with locker rental for the day"
+    },
+    {
+     "small": "",
+     "medium": "",
+     "large": "https://res.klook.com/image/upload/activities/cf90ba01-Cartoon-Network-Amazone-Package-Add-Ons.jpg",
+     "extra_large": "https://res.klook.com/image/upload/activities/cf90ba01-Cartoon-Network-Amazone-Package-Add-Ons.jpg",
+     "credits": null,
+     "alt_text": "Cartoon Network Amazone wrist band",
+     "description": "Enjoy cashless payments with the convenient wrist band system"
+    },
+    {
+     "small": "",
+     "medium": "",
+     "large": "https://res.klook.com/image/upload/activities/gm4n0mhwgxnhs2kh2uus.jpg",
+     "extra_large": "https://res.klook.com/image/upload/activities/gm4n0mhwgxnhs2kh2uus.jpg",
+     "credits": null,
+     "alt_text": "Cartoon Network Amazone Add Ons",
+     "description": ""
+    }
+   ],
+   "geoCode": {
+    "lat": 13.7532663,
+    "lng": 100.5416257
+   },
+   "ratings": {
+    "average": "",
+    "total": 0
+   },
+   "tags": [
+    "Instant Book",
+    "Mobile Ticket",
+    "Airport Lounge",
+    "Travel Services"
+   ],
+   "category": "Attractions",
+   "subCategories": [
+    "Airport Lounge"
+   ],
+   "price": {
+    "currency": "USD",
+    "discount": 0,
+    "discountPrice": 0,
+    "price": 16.32,
+    "available": true,
+    "originalPrice": 15.54,
+    "packageId": "6936d3ff0f7de648237b1cf2",
+    "skuId": "822428115910"
+   },
+   "duration": null,
+   "duration_hours": null,
+   "iso_duration": null,
+   "duration_start_timestamp": 0,
+   "duration_end_timestamp": 0,
+   "limitedAvailability": false,
+   "languages": [
+    "vi",
+    "id",
+    "en",
+    "es",
+    "ko",
+    "fr",
+    "de",
+    "zh",
+    "it",
+    "ru"
+   ],
+   "wheelchair_access": false,
+   "isfamily_friendly": false,
+   "group_type": "",
+   "city_name": null,
+   "country_name": null,
+   "nearby_activity": false,
+   "adp_data": null
+  },
+  {
+   "id": "6a0f05a61e97b6b09a16122a",
+   "title": "Dubai: Camel Safari, Wildlife & Lakeside Breakfast",
+   "descriptions": "Experience a guided camel ride in Dubai's desert, spot wildlife like Arabian oryx, enjoy seasonal treats by a lake, and support conservation efforts on this unforgettable adventure.",
+   "images": [
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/06/cf/35/84.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/06/cf/35/84.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/06/cf/35/84.jpg",
+     "caption": "Camel riding",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/06/77/94/7b.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/06/77/94/7b.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/06/77/94/7b.jpg",
+     "caption": "Camel Trekking",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/06/ce/b4/32.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/06/ce/b4/32.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/06/ce/b4/32.jpg",
+     "caption": "The lake in the Dubai Desert Conservation Reserve",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/06/cf/35/79.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/06/cf/35/79.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/06/cf/35/79.jpg",
+     "caption": "Breakfast set up by the lake",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/09/c6/57/de.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/09/c6/57/de.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/09/c6/57/de.jpg",
+     "caption": "Experience the traditional camel ride",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    },
+    {
+     "url": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/06/cf/35/74.jpg",
+     "small": "",
+     "medium": "",
+     "large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-540x360/06/cf/35/74.jpg",
+     "extra_large": "https://hare-media-cdn.tripadvisor.com/media/attractions-splice-spp-720x480/06/cf/35/74.jpg",
+     "caption": "Caravan camel ride",
+     "alt_text": null,
+     "credits": null,
+     "description": ""
+    }
+   ],
+   "geoCode": {
+    "lat": 25.2644444,
+    "lng": 55.3116667
+   },
+   "ratings": {
+    "average": "5.0",
+    "total": 20
+   },
+   "tags": [
+    "Free Cancellation",
+    "Instant Book",
+    "Mobile Ticket",
+    "Photography Tours",
+    "Photography Tour",
+    "Wildlife Watching"
+   ],
+   "category": "Tours",
+   "subCategories": [
+    "Photography Tours",
+    "Wildlife Watching",
+    "Nature and Wildlife Tours"
+   ],
+   "price": {
+    "currency": "USD",
+    "discount": 0,
+    "discountPrice": 0,
+    "price": 116.55,
+    "available": true,
+    "originalPrice": 111,
+    "packageId": "6a7f09f5cf0f7ab6c34714e7",
+    "skuId": "TG1_CHILD"
+   },
+   "duration": 240,
+   "duration_hours": "4 hours",
+   "iso_duration": "PT4H",
+   "duration_start_timestamp": 0,
+   "duration_end_timestamp": 14400000,
+   "limitedAvailability": false,
+   "languages": [
+    "EN"
+   ],
+   "wheelchair_access": false,
+   "isfamily_friendly": true,
+   "group_type": "group",
+   "city_name": null,
+   "country_name": null,
+   "nearby_activity": false,
+   "adp_data": null
+  },
+  {
+   "id": "6a7e89a5a9f27eeef7016f4c",
+   "title": "attraction test",
+   "descriptions": "",
+   "images": [
+    {
+     "small": "",
+     "medium": "",
+     "large": "https://res.klook.com/image/upload/activities/lv6o695qh0oohhsjwycm.jpg",
+     "extra_large": "https://res.klook.com/image/upload/activities/lv6o695qh0oohhsjwycm.jpg",
+     "credits": null,
+     "alt_text": "",
+     "description": ""
+    },
+    {
+     "small": "",
+     "medium": "",
+     "large": "https://res.klook.com/image/upload/activities/dcf0hqsuldncamosbfnd.jpg",
+     "extra_large": "https://res.klook.com/image/upload/activities/dcf0hqsuldncamosbfnd.jpg",
+     "credits": null,
+     "alt_text": "",
+     "description": ""
+    }
+   ],
+   "geoCode": {
+    "lat": 25.2048493,
+    "lng": 55.2707828
+   },
+   "ratings": {
+    "average": "",
+    "total": 0
+   },
+   "tags": [
+    "Free Cancellation",
+    "Instant Book",
+    "Mobile Ticket",
+    "Garden",
+    "Park",
+    "Nature"
+   ],
+   "category": "Attractions",
+   "subCategories": [
+    "Gardens & Parks"
+   ],
+   "price": {
+    "currency": "USD",
+    "discount": 0,
+    "discountPrice": 0,
+    "price": 13.5,
+    "available": true,
+    "originalPrice": 12.86,
+    "packageId": "6a7e89a5cf0f7ab6c3470d7a",
+    "skuId": "822428125480"
+   },
+   "duration": null,
+   "duration_hours": null,
+   "iso_duration": null,
+   "duration_start_timestamp": 0,
+   "duration_end_timestamp": 0,
+   "limitedAvailability": false,
+   "languages": [
+    "nb",
+    "pt",
+    "ms",
+    "ko",
+    "hi",
+    "ja",
+    "sv",
+    "tl",
+    "th",
+    "id",
+    "en",
+    "da",
+    "ta",
+    "zh",
+    "bn",
+    "ru",
+    "bg",
+    "vi",
+    "es",
+    "ca",
+    "ro",
+    "fr",
+    "pl",
+    "hu",
+    "el",
+    "si",
+    "cs",
+    "nl",
+    "sk",
+    "de",
+    "tr",
+    "it",
+    "fi"
+   ],
+   "wheelchair_access": false,
+   "isfamily_friendly": false,
+   "group_type": "",
+   "city_name": null,
+   "country_name": null,
+   "nearby_activity": false,
+   "adp_data": null
+  }
+ ],
+ "total_page_count": 1,
+ "total_count": 7,
+ "sort": "recommended",
+ "warnings": [],
+ "search_date": "2026-11-17",
+ "iso_search_date": "2026-11-17T00:00:00"
+}

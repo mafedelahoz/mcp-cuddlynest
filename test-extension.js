@@ -104,19 +104,24 @@ class MCPTester {
   }
 
   async testUnavailableVertical() {
-    console.log("\n🧭 cuddlynest_search vertical=attractions (no source yet)...");
-    for (const source of ["auto", "db", "live"]) {
+    console.log("\n🧭 cuddlynest_search vertical=flights / attractions without live...");
+    const cases = [
+      // Flights / attractions only go to their APIs with source "live" (covered offline in test-live-isolation.js).
+      ...["auto", "db"].map((source) => ["flights", source, /^flights_require_live_source$/]),
+      ...["auto", "db"].map((source) => ["attractions", source, /^attractions_require_live_source$/]),
+    ];
+    for (const [vertical, source, reasonRe] of cases) {
       const res = await this.sendRequest("tools/call", {
         name: "cuddlynest_search",
-        arguments: { destination: "Cartagena, Colombia", vertical: "attractions", source },
+        arguments: { destination: "Cartagena, Colombia", vertical, source },
       });
       if (res.error) throw new Error(res.error.message);
       const content = JSON.parse(res.result.content[0].text);
-      if (res.result.isError) throw new Error(`source=${source}: unexpected tool error`);
-      if (content.source !== "unavailable") throw new Error(`source=${source}: expected "unavailable"`);
+      if (res.result.isError) throw new Error(`${vertical}/${source}: unexpected tool error`);
+      if (content.source !== "unavailable") throw new Error(`${vertical}/${source}: expected "unavailable"`);
       if (!Array.isArray(content.results) || content.results.length) throw new Error("expected empty results");
-      if (!/^no_(db|live)_source_for_vertical$/.test(content.reason)) throw new Error(`bad reason ${content.reason}`);
-      console.log(`   ✅ source=${source} -> ${content.reason}`);
+      if (!reasonRe.test(content.reason)) throw new Error(`bad reason ${content.reason}`);
+      console.log(`   ✅ ${vertical} source=${source} -> ${content.reason}`);
     }
     return true;
   }

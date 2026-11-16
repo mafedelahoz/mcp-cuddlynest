@@ -14,6 +14,8 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 import { mapAvailabilityResponse, parseReviewText, summarizeReport } from "./dist/be-api-provider.js";
+import { buildActivitiesQuery, mapActivitiesResponse } from "./dist/attractions-provider.js";
+import { buildPassengers, mapFlightResults, normalizeCabin } from "./dist/flights-provider.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SIMULATED = JSON.parse(
@@ -124,6 +126,74 @@ console.log("\n=== [CAPTURED STAGING] mapAvailabilityResponse — real WebSocket
     real.every((s, i) => REAL.data[i].grs_total_reviews > 0 || (s.rating === null && !s.tags.includes(String(REAL.data[i].grs_adjective_new).toLowerCase()))));
   check("[REAL] static fields carry no price/availability",
     real.every((s) => { const { pricing, ...rest } = s; return priceKeys(rest).length === 0; }));
+}
+
+console.log("\n=== [CAPTURED STAGING] mapActivitiesResponse — real attractions search ===");
+{
+  const ACT = JSON.parse(readFileSync(join(__dirname, "fixtures", "staging-attractions-search-sample.json"), "utf8"));
+  const { attractions: list, totalCount, dropped } = mapActivitiesResponse(ACT, { city: "Bangkok", country: "Thailand" });
+  check("[REAL] every activity mapped, none dropped", list.length === ACT.activities.length && dropped === 0 && totalCount === ACT.total_count);
+  const src = ACT.activities.find((a) => a.ratings?.total > 0 && a.duration);
+  const m = list.find((a) => a.id === src.id);
+  check("[REAL] name / category / coords / image from title / category / geoCode / images[0].large",
+    m.name === src.title && m.category === src.category && m.location.lat === src.geoCode.lat &&
+    m.location.lng === src.geoCode.lng && m.cover_image_url === src.images[0].large);
+  check("[REAL] rating (0-5) and review count from ratings", m.rating === Number(src.ratings.average) && m.details.reviewCount === src.ratings.total);
+  check("[REAL] duration minutes / label / ISO", m.duration.minutes === src.duration && m.duration.label === src.duration_hours && m.duration.iso === src.iso_duration);
+  check("[REAL] pricing from price / currency / available, dated by search_date",
+    m.pricing.price === src.price.price && m.pricing.currency === src.price.currency &&
+    m.pricing.available === src.price.available && m.pricing.date === ACT.search_date);
+  check("[REAL] price.originalPrice (looks like the net rate) is never exposed",
+    list.every((a) => !("originalPrice" in a.pricing)) && !JSON.stringify(list).includes(String(src.price.originalPrice)));
+  check("[REAL] city / country fall back to the request when the API sends null",
+    list.every((a) => a.location.city === "Bangkok" && a.location.country === "Thailand"));
+  check("[REAL] no rating when an activity has 0 reviews",
+    list.every((a, i) => ACT.activities[i].ratings?.total > 0 || a.rating === null));
+  check("[REAL] tags slugified, description has no leading bullet",
+    list.every((a) => a.tags.every((t) => /^[a-z0-9-]+$/.test(t)) && !/^[*•]/.test(a.description_short ?? "")));
+  check("[REAL] static fields carry no price/availability",
+    list.every((a) => { const { pricing, ...rest } = a; return priceKeys(rest).length === 0; }));
+  for (const [label, input] of [["null", null], ["no activities", { total_count: 3 }], ["junk items", { activities: [null, 1, { title: "no id" }] }]]) {
+    const r = mapActivitiesResponse(input, { city: null, country: null });
+    check(`attractions ${label}: no throw, 0 mapped`, r.attractions.length === 0);
+  }
+  const q = buildActivitiesQuery("Austin, TX", 80);
+  check("query: state goes into user_location, limit capped at 50",
+    q.get("search_parameter") === "Austin" && q.get("user_location") === "Austin, Texas" && q.get("results_per_page") === "50");
+}
+
+console.log("\n=== [CAPTURED STAGING] mapFlightResults — real flight search results ===");
+{
+  const FL = JSON.parse(readFileSync(join(__dirname, "fixtures", "staging-flight-results-sample.json"), "utf8"));
+  const { flights, totalCount, dropped } = mapFlightResults(FL);
+  check("[REAL] every itinerary mapped", flights.length === FL.FlightSearchRS.Itineraries.length && dropped === 0 &&
+    totalCount === FL.FlightSearchRS.TotalItineraries);
+  const src = FL.FlightSearchRS.Itineraries[0];
+  const f = flights[0];
+  check("[REAL] id, legs, origin / destination airports and local times",
+    f.id === src.ItineraryID && f.legs.length === src.Legs.length && f.legs[0].origin.airportCode === "BOG" &&
+    f.legs[0].destination.airportCode === "MIA" && f.legs[0].origin.time === src.Legs[0].Origin.DateTime);
+  const seg = src.Legs[0].Segments[0];
+  check("[REAL] segment carrier and flight number",
+    f.legs[0].segments[0].carrier.code === seg.MarketingCarrier.Code &&
+    f.legs[0].segments[0].flightNumber === `${seg.MarketingCarrier.Code}${seg.MarketingCarrier.FlightNumber}`);
+  check("[REAL] customer total / base / taxes from TotalPrice.amount",
+    f.pricing.total.amount === src.ItineraryFares.TotalPrice.TotalAmount.amount &&
+    f.pricing.base.amount === src.ItineraryFares.TotalPrice.BaseAmount.amount &&
+    f.pricing.taxes.amount === src.ItineraryFares.TotalPrice.TotalTax.amount && f.pricing.total.currency === "USD");
+  check("[REAL] supplier rate (api_amount sentinel) never exposed",
+    !JSON.stringify(flights).includes("999999.99") && !JSON.stringify(flights).includes("api_amount"));
+  check("[REAL] stops counted from segments", flights.every((x, i) => x.stops === Math.max(...FL.FlightSearchRS.Itineraries[i].Legs.map((l) => l.Segments.length - 1))));
+  check("[REAL] baggage and conditions read", f.baggage.checked !== undefined && typeof f.conditions.changeable === "boolean");
+  check("[REAL] static fields carry no price/availability",
+    flights.every((x) => { const { pricing, ...rest } = x; return priceKeys(rest).length === 0; }));
+  for (const [label, input] of [["null", null], ["no results", { FlightSearchRS: {} }], ["junk", { FlightSearchRS: { Itineraries: [null, { ItineraryID: "x" }] } }]]) {
+    check(`flights ${label}: no throw, 0 mapped`, mapFlightResults(input).flights.length === 0);
+  }
+  check("passengers: adults + one entry per child age + infants",
+    JSON.stringify(buildPassengers({ adults: 1, childAges: [4, 9], infants: 1 })) ===
+    JSON.stringify([{ Type: "adult", Quantity: 1 }, { Type: "child", Quantity: 1, Age: 4 }, { Type: "child", Quantity: 1, Age: 9 }, { Type: "infant", Quantity: 1 }]));
+  check("cabin: normalized, unknown -> economy", normalizeCabin("Premium Economy") === "premium_economy" && normalizeCabin("sofa") === "economy");
 }
 
 console.log("\n=== parseReviewText ===");

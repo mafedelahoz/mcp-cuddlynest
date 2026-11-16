@@ -7,7 +7,9 @@
 //
 // Runs the built server against a local mock JWT issuer + availability WebSocket
 // that count every hit. The socket replays a real staging availability event
-// (fixtures/staging-ws-availability-sample.json). No real credentials are used.
+// (fixtures/staging-ws-availability-sample.json); the attractions mock replays a
+// real staging search (fixtures/staging-attractions-search-sample.json). No real
+// credentials are used.
 
 import { createServer } from "node:http";
 import { mkdtempSync, readFileSync } from "node:fs";
@@ -22,9 +24,16 @@ const MOCK_JWT = `${b64({ alg: "none" })}.${b64({ exp: Math.floor(Date.now() / 1
 const MOCK_KEY = "test-api-key";
 
 const REAL_AVAILABILITY = JSON.parse(readFileSync(new URL("./fixtures/staging-ws-availability-sample.json", import.meta.url), "utf8"));
+const REAL_FLIGHTS = JSON.parse(readFileSync(new URL("./fixtures/staging-flight-results-sample.json", import.meta.url), "utf8"));
+const CACHED_SESSION = "11111111-1111-4111-8111-111111111111";
+const REAL_ACTIVITIES = JSON.parse(readFileSync(new URL("./fixtures/staging-attractions-search-sample.json", import.meta.url), "utf8"));
 const ORIGIN = "https://www.cuddlynest.com";
 
-const hits = { token: 0, availability: 0 };
+const hits = { token: 0, availability: 0, attractions: 0, flights: 0 };
+let lastFlightSearch, lastResultsSession;
+let resultsReads = 0, flaky408 = false;
+let lastAttractions;
+let attractionsMode = "ok"; // "ok" | "error" (answers 500)
 let lastAvailability;
 let socketMode = "ok"; // "ok" | "close" (closes without results)
 const mock = createServer(async (req, res) => {
@@ -34,6 +43,36 @@ const mock = createServer(async (req, res) => {
     hits.token++;
     if (req.headers["x-cuddlynest-api-key"] !== MOCK_KEY) return res.writeHead(401).end();
     res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify({ token: MOCK_JWT }));
+    return;
+  }
+  // Flights: autosuggest, search (answers a cached session id, like staging), results.
+  if (req.url.startsWith("/api/flight/")) {
+    hits.flights++;
+    const u = new URL(req.url, "http://mock");
+    const json = (o, code = 200) => res.writeHead(code, { "Content-Type": "application/json" }).end(JSON.stringify(o));
+    if (u.pathname === "/api/flight/autosuggest") {
+      const city = u.searchParams.get("query");
+      const code = { Bogota: "BOG", Miami: "MIA" }[city];
+      return json({ status: "success", data: code ? [{ city_name: city, city_code: code, country_name: "X", country_code: "XX",
+        airports: [{ airport_code: code, airport_name: `${city} Intl` }], is_nearby_match: false }] : [] });
+    }
+    if (u.pathname === "/api/flight/search" && req.method === "POST") {
+      lastFlightSearch = JSON.parse(Buffer.concat(chunks).toString());
+      return json(CACHED_SESSION);
+    }
+    if (u.pathname === "/api/flight/results") {
+      lastResultsSession = u.searchParams.get("sessionID");
+      resultsReads++;
+      // Like staging: the first read of a session can 408, a second one works.
+      if (flaky408 && resultsReads === 1) return json({ detail: "Search timed out waiting for results" }, 408);
+      return lastResultsSession === CACHED_SESSION ? json(REAL_FLIGHTS) : json({ detail: "Search timed out waiting for results" }, 408);
+    }
+  }
+  if (req.url.startsWith("/v2.2/activities/") && req.method === "GET") {
+    hits.attractions++;
+    lastAttractions = new URL(req.url, "http://mock").searchParams;
+    if (attractionsMode === "error") return res.writeHead(500).end();
+    res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify(REAL_ACTIVITIES));
     return;
   }
   res.writeHead(404).end();
@@ -88,6 +127,8 @@ async function withServer(label, env, fn) {
       CUDDLYNEST_JWT_ISSUER_URL: `${base}/token`,
       CUDDLYNEST_API_KEY: MOCK_KEY,
       CUDDLYNEST_BE_AVAILABILITY_URL: `${wsBase}/get-availability`,
+      CUDDLYNEST_ATTRACTIONS_API_URL: base,
+      CUDDLYNEST_FLIGHTS_API_URL: base,
       CUDDLYNEST_CACHE_FILE: join(tmp, `${label}-cache.json`),
       CUDDLYNEST_FALLBACK_LOG: join(tmp, "fallback.log"),
       ...env,
@@ -133,10 +174,17 @@ try {
           check(leaks.length === 0, `${source} "${args.destination}" -> ${json.source}${json.dbFallbackReason ? `/${json.dbFallbackReason}` : ""}` +
             (json.code ? `/${json.code}` : "") + (leaks.length ? ` leaks ${leaks.slice(0, 3).join(", ")}` : ", no price fields"));
         }
+        const attr = await search({ destination: "Bangkok, Thailand", vertical: "attractions", source });
+        check(attr.json.source === "unavailable" && attr.json.reason === "attractions_require_live_source" && attr.json.results.length === 0,
+          `${source} attractions -> unavailable/${attr.json.reason}`);
+        const fl = await search({ destination: "Miami", origin: "Bogota", vertical: "flights", source, ...DATES });
+        check(fl.json.source === "unavailable" && fl.json.reason === "flights_require_live_source" && fl.json.results.length === 0,
+          `${source} flights -> unavailable/${fl.json.reason}`);
       }
     });
-    check(hits.availability === 0 && hits.token === 0,
-      `live API hits: ${hits.availability}, JWT issuer hits: ${hits.token} (expected 0 / 0)`);
+    check(hits.availability === 0 && hits.token === 0 && hits.attractions === 0 && hits.flights === 0,
+      `live API hits: ${hits.availability}, JWT issuer hits: ${hits.token}, attractions API hits: ${hits.attractions}, ` +
+      `flights API hits: ${hits.flights} (expected 0 / 0 / 0 / 0)`);
   }
 
   console.log("\n📡 source: \"live\" goes to the live API only");
@@ -169,6 +217,69 @@ try {
     const broken = await search({ destination: "Paris, France", source: "live", ...DATES });
     check(broken.isError && broken.json.liveErrorCode === "unavailable" && !("hotels" in broken.json),
       `socket closes without results -> clear error (${broken.json.liveErrorCode}), no fallback`);
+  });
+
+  console.log("\n🎟️  vertical: \"attractions\" + source: \"live\" goes to the attractions API only");
+  await withServer("attractions", { CUDDLYNEST_DB_HOST: "127.0.0.1", CUDDLYNEST_DB_PORT: deadPort }, async (search) => {
+    const before = { ...hits };
+    const r = await search({ destination: "Bangkok, Thailand", vertical: "attractions", source: "live", limit: 5 });
+    check(hits.attractions === before.attractions + 1 && hits.availability === before.availability && hits.token === before.token,
+      "one attractions API call, no stays live API or JWT issuer call");
+    check(lastAttractions?.get("search_parameter") === "Bangkok" && lastAttractions.get("user_location") === "Bangkok, Thailand" &&
+      lastAttractions.get("search_type") === "destination" && lastAttractions.get("results_per_page") === "5",
+      "query: search_parameter / user_location / search_type=destination / results_per_page");
+    const list = r.json.attractions ?? [];
+    check(!r.isError && r.json.source === "live" && list.length === 5 && list.every((a) => a.type === "attraction"),
+      `${list.length} attractions (limit 5 of ${REAL_ACTIVITIES.activities.length})`);
+    check(list.every((a) => a.url.endsWith(`/attractions/detail/${a.id}`) && typeof a.pricing?.price === "number"),
+      "each has a /attractions/detail/{id} url and a pricing section");
+    check(list.every((a) => { const { pricing, ...rest } = a; return priceKeys(rest).length === 0; }),
+      "static fields of attractions carry no price/availability");
+
+    attractionsMode = "error";
+    const broken = await search({ destination: "Bangkok, Thailand", vertical: "attractions", source: "live" });
+    check(broken.isError && broken.json.liveErrorCode === "http_error" && !("hotels" in broken.json) && !("stays" in broken.json),
+      `attractions API 500 -> clear error (${broken.json.liveErrorCode}), no fallback`);
+  });
+
+  console.log("\n✈️  vertical: \"flights\" + source: \"live\" goes to the flights API only");
+  await withServer("flights", { CUDDLYNEST_DB_HOST: "127.0.0.1", CUDDLYNEST_DB_PORT: deadPort }, async (search) => {
+    const before = { ...hits };
+    const noOrigin = await search({ destination: "Miami", vertical: "flights", source: "live", ...DATES });
+    check(noOrigin.isError && noOrigin.json.liveErrorCode === "invalid_input" && hits.flights === before.flights,
+      "no origin -> invalid_input, no API call");
+    const noAges = await search({ destination: "Miami", origin: "Bogota", vertical: "flights", source: "live", children: 1, ...DATES });
+    check(noAges.isError && noAges.json.liveErrorCode === "invalid_input" && hits.flights === before.flights,
+      "children without childAges -> invalid_input, no API call");
+
+    const r = await search({ destination: "Miami", origin: "Bogota", vertical: "flights", source: "live", checkin: DATES.checkin,
+      adults: 2, childAges: [7], infants: 1, cabinClass: "business", limit: 2 });
+    check(hits.availability === before.availability && hits.token === before.token && hits.attractions === before.attractions,
+      "no stays live API, JWT issuer or attractions call");
+    const rq = lastFlightSearch?.FlightSearchRQ ?? {};
+    const od = rq.SearchCriteria?.OriginDestinations ?? [];
+    check(od.length === 1 && od[0].Departure === "BOG" && od[0].Arrival === "MIA" && od[0].DepartureDate === DATES.checkin,
+      "one way BOG -> MIA resolved through autosuggest");
+    check(JSON.stringify(rq.Passengers) === JSON.stringify([{ Type: "adult", Quantity: 2 }, { Type: "child", Quantity: 1, Age: 7 }, { Type: "infant", Quantity: 1 }]) &&
+      rq.Filters?.CabinClass === "business" && rq.Currency === "USD", "passengers (adults, child ages, infants), cabin and currency");
+    check(lastResultsSession === CACHED_SESSION && r.json.sessionId === CACHED_SESSION, "results read with the session id the search answered");
+    const list = r.json.flights ?? [];
+    check(!r.isError && r.json.source === "live" && list.length === 2 && list.every((f) => f.type === "flight" && f.pricing?.total?.amount > 0),
+      `${list.length} flights (limit 2), each with a customer total`);
+    check(!JSON.stringify(r.json).includes("999999.99") && !JSON.stringify(r.json).includes("api_amount"),
+      "supplier rate (api_amount) never exposed");
+    check(list.every((f) => { const { pricing, ...rest } = f; return priceKeys(rest).length === 0; }),
+      "static fields of flights carry no price/availability");
+
+    await search({ destination: "Miami", origin: "BOG", vertical: "flights", source: "live", ...DATES });
+    check(lastFlightSearch.FlightSearchRQ.SearchCriteria.OriginDestinations.length === 2 &&
+      lastFlightSearch.FlightSearchRQ.SearchCriteria.OriginDestinations[1].Departure === "MIA", "checkout adds the return leg");
+    flaky408 = true; resultsReads = 0;
+    const retried = await search({ destination: "Miami", origin: "BOG", vertical: "flights", source: "live", ...DATES });
+    check(!retried.isError && resultsReads === 2 && retried.json.flights.length > 0, "backend 408 -> results read once more, then answers");
+    flaky408 = false;
+    const unknown = await search({ destination: "Zzxq", origin: "BOG", vertical: "flights", source: "live", ...DATES });
+    check(unknown.isError && unknown.json.liveErrorCode === "airport_not_found", `unknown city -> ${unknown.json.liveErrorCode}, no fallback`);
   });
 } finally {
   wss.close();

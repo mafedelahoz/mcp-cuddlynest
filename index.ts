@@ -25,6 +25,8 @@ import { DbError, getStaysCached, startStaysCacheRefresh } from "./db.js";
 import { parseDestination } from "./destination.js";
 import { fallbackSearchProvider, type Vertical } from "./fallback-provider.js";
 import { BeApiError, beApiSearchProvider } from "./be-api-provider.js";
+import { AttractionsError, searchAttractions } from "./attractions-provider.js";
+import { FlightsError, searchFlights } from "./flights-provider.js";
 import {
   BookingError,
   BookingFlow,
@@ -121,8 +123,19 @@ const CUDDLYNEST_SEARCH_TOOL: Tool = {
         type: "string",
         enum: ["stays", "flights", "attractions"],
         description:
-          "What to search (default \"stays\"). Only stays have a data source today; " +
-          "flights and attractions return source \"unavailable\" with empty results.",
+          "What to search (default \"stays\"). \"attractions\" and \"flights\" need " +
+          "source \"live\". Attractions: tours and activities with a from-price. Flights: " +
+          "live fares from `origin` to `destination`; checkin = departure date, checkout = " +
+          "return date (omit for one way); childAges required when travelling with children.",
+      },
+      origin: {
+        type: "string",
+        description: "Flights only: departure city or IATA code, e.g. 'Bogotá' or 'BOG'.",
+      },
+      cabinClass: {
+        type: "string",
+        enum: ["economy", "premium_economy", "business", "first"],
+        description: "Flights only (default economy).",
       },
       source: {
         type: "string",
@@ -379,21 +392,100 @@ function normalizeGuests(params: any) {
 const VERTICALS: readonly Vertical[] = ["stays", "flights", "attractions"];
 
 function unavailableVertical(destination: string, vertical: Vertical, mode: string) {
-  const reason =
-    mode === "live" && !beApiSearchProvider.verticals.includes(vertical)
-      ? "no_live_source_for_vertical"
-      : "no_db_source_for_vertical";
+  // Attractions and flights have no catalog DB source, only their live APIs.
   return textResult({
     query: destination,
     vertical,
     requestedSource: mode,
     source: "unavailable",
-    reason,
+    reason: `${vertical}_require_live_source`,
     results: [],
-    note:
-      `No data source for ${vertical} yet (${reason}). Only stays are searchable ` +
-      `today; use vertical "stays".`,
+    note: `${vertical} have no catalog DB source; search them with source "live".`,
   });
+}
+
+async function handleFlightsSearch(destination: string, params: any) {
+  const g = normalizeGuests({ ...params, adults: params.adults ?? 1 });
+  try {
+    if (g.children > g.childAges.length) {
+      throw new FlightsError("invalid_input", "Flights need the age of each child: pass `childAges`.");
+    }
+    const r = await searchFlights({
+      origin: String(params.origin ?? ""),
+      destination,
+      departureDate: g.checkin,
+      returnDate: g.checkout,
+      adults: g.adults,
+      childAges: g.childAges,
+      infants: g.infants,
+      cabinClass: params.cabinClass,
+      currency: g.currency,
+      limit: params.limit,
+      log,
+    });
+    return textResult({
+      query: destination,
+      vertical: "flights",
+      source: "live",
+      provider: "flight-search-engine",
+      route: r.route,
+      sessionId: r.sessionId,
+      status: r.status,
+      totalCount: r.totalCount,
+      flightCount: r.flights.length,
+      flights: r.flights,
+      note:
+        `${r.flights.length} itinerary(ies), best first. Times are local to each airport; ` +
+        `prices are customer totals for all passengers and only appear under \`pricing\`.`,
+    });
+  } catch (e) {
+    // No fallback: there is no other flights source.
+    const code = e instanceof FlightsError ? e.code : "unexpected_error";
+    log("warn", "Flight search failed", { destination, code });
+    return textResult(
+      {
+        query: destination,
+        vertical: "flights",
+        source: "live",
+        error: e instanceof Error ? e.message : String(e),
+        liveErrorCode: code,
+      },
+      true,
+    );
+  }
+}
+
+async function handleAttractionsSearch(destination: string, limit?: number) {
+  try {
+    const r = await searchAttractions({ destination, limit, log });
+    return textResult({
+      query: destination,
+      vertical: "attractions",
+      source: "live",
+      provider: "attractions-shopping-service",
+      resolvedLocation: r.resolvedLocation,
+      totalCount: r.totalCount,
+      attractionCount: r.attractions.length,
+      attractions: r.attractions,
+      note:
+        `${r.attractions.length} attraction(s). Prices are "from" prices for ` +
+        `pricing.date and only appear under each attraction's \`pricing\`; ratings are 0-5.`,
+    });
+  } catch (e) {
+    // No fallback: there is no other attractions source.
+    const code = e instanceof AttractionsError ? e.code : "unexpected_error";
+    log("warn", "Attractions search failed", { destination, code });
+    return textResult(
+      {
+        query: destination,
+        vertical: "attractions",
+        source: "live",
+        error: e instanceof Error ? e.message : String(e),
+        liveErrorCode: code,
+      },
+      true,
+    );
+  }
 }
 
 async function handleLiveSearch(
@@ -454,6 +546,13 @@ async function handleSearch(params: any) {
       true,
     );
   }
+  // Attractions and flights: explicit "live" only. Flights is a real-time supplier
+  // call (L2B); attractions follow the same rule until the backend confirms its
+  // search can't reach suppliers.
+  if (vertical === "attractions" && mode === "live") {
+    return handleAttractionsSearch(String(destination), params.limit);
+  }
+  if (vertical === "flights" && mode === "live") return handleFlightsSearch(String(destination), params);
   if (vertical !== "stays") return unavailableVertical(String(destination), vertical, mode);
 
   // Explicit "live" only (Option B): a real-time supplier call, which counts
