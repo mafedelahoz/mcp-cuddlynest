@@ -101,25 +101,51 @@ Both tools are annotated `readOnlyHint: true` — they never write, book, or pay
 
 ### `cuddlynest_search`
 
-Search a destination and the top hotels there, from public CuddlyNest APIs
-(`autosuggestion-2-0` for the fuzzy match, `discovery-pages` geo pages for the
-broader city list). Prices are **not** here — pass a hotel's `productId` to
-`cuddlynest_listing_details`.
+Search stays, attractions or flights for a destination. `vertical` picks what to
+search and `source` picks where the data comes from.
 
 | Parameter | Required | Description |
 | --- | --- | --- |
-| `destination` | yes | City / area string, e.g. `"Cartagena, Colombia"` |
-| `hotelsOnly` | no | Omit the `places[]` block (default `false`) |
-| `fullCityList` | no | Also pull the geo-page city list (~60–250 hotels) when it can be resolved and verified against the destination — a few extra requests (default `true`) |
-| `checkin`, `checkout`, `adults`, `children`, `childAges`, `infants`, `rooms`, `currency` | no | echoed back for downstream use |
+| `destination` | yes | City / area string, e.g. `"Cartagena, Colombia"` (for flights: where you fly to) |
+| `vertical` | no | `"stays"` (default), `"attractions"` or `"flights"` |
+| `source` | no | `"auto"` (default), `"db"` or `"live"` — see below |
+| `limit` | no | Max results (default 20 for stays/attractions, 10 for flights; max 50) |
+| `origin` | flights | Departure city or IATA code, e.g. `"Bogotá"` or `"BOG"` |
+| `cabinClass` | no | Flights: `economy` (default), `premium_economy`, `business`, `first` |
+| `checkin`, `checkout` | live stays, flights | `YYYY-MM-DD`. Flights: departure / return date (omit `checkout` for one way) |
+| `adults`, `children`, `childAges`, `infants`, `rooms`, `currency` | no | Guests / passengers. Flights need `childAges` when travelling with children |
+| `hotelsOnly`, `fullCityList` | no | Stays from the public-site fallback only |
 
-**Returns:** `{ query, guests, places[], city, hotelSource, hotelCount, hotels[], note }`.
-Each `hotels[]` entry: `productId`, `name`, `url`, `slug`, `propertyType`,
-`starRating`, `guestRating` (/10) + `guestRatingText`, `reviewCount`, and — from
-the geo page — `images[]`, `distanceFromCenterKm`, `featuredAmenities[]`.
-`hotelSource` is `"autosuggest"` or `"autosuggest+geopage"`. The list is
-top-matches scale, **not** full inventory — CuddlyNest's real results page
-(`/sr/…`) is bot-blocked and `Disallow`ed in robots.txt.
+**Sources**
+
+| `source` | Stays | Attractions | Flights |
+| --- | --- | --- | --- |
+| `auto` | Catalog DB (cached per destination); falls back to the public site if the DB fails, has no results or the destination is ambiguous | not available | not available |
+| `db` | Catalog DB only; an error instead of a fallback | not available | not available |
+| `live` | Real-time availability with prices (needs dates) | Tours and activities with a from-price | Real-time fares |
+
+`live` calls CuddlyNest's real-time APIs, which reach travel suppliers, so it is
+only used when a caller asks for it explicitly and never as an automatic
+fallback. A failed `live` search returns an error with `liveErrorCode`; it never
+falls back to another source.
+
+**Returns** (all verticals share the same static shape, and prices only ever
+appear under each result's `pricing`):
+
+- **Stays:** `stays[]` with `id`, `type`, `name`, `slug`, `category`,
+  `location { city, country, lat, lng, nearest_airport }`, `tags`,
+  `description_short`, `amenities`, `rating` (/10), `cover_image_url`, `url`;
+  live results add `details` (neighborhood, distance, reviews, nearby places)
+  and `pricing`.
+- **Attractions:** `attractions[]` with the same static fields plus `duration`,
+  `rating` (/5), `details` (reviews, sub-categories, languages, accessibility)
+  and `pricing` (from-price, currency, availability, priced date).
+- **Flights:** `flights[]` with `legs[]` (airports, local times, duration,
+  stops, `segments[]` with carrier and flight number), `airlines`, `baggage`,
+  `conditions` (refundable / changeable) and `pricing` (total, base, taxes, per
+  passenger, price guarantee expiry), plus the search `sessionId`.
+- `vertical` / `source` combinations with no data source answer
+  `source: "unavailable"` with a `reason` and empty `results`.
 
 ### `cuddlynest_listing_details`
 
@@ -162,6 +188,14 @@ npm run watch
 - `scrape-listing.ts` — `resolveListingPath`, `buildListingUrl`, `scrapeListing`
   (headless browser), `extractRoomsFromDom` (React-fiber walk)
 - `util.ts` — generic object/JSON helpers
+- `db.ts`, `cache.ts`, `destination.ts` — read-only catalog DB for stays, the
+  per-destination cache with background refresh, and destination parsing
+- `fallback-provider.ts` — public-site fallback for `source: "auto"`
+- `auth.ts` — service JWT (fetched with an API key, cached, renewed before expiry)
+- `be-api-provider.ts` — live stays availability (`source: "live"`)
+- `attractions-provider.ts`, `flights-provider.ts` — live attractions and flights search
+- `booking.ts` — booking flow scaffold; its tools stay hidden until the booking
+  contract is in place (`CUDDLYNEST_ENABLE_BOOKING_TOOLS`)
 
 
 ## License
