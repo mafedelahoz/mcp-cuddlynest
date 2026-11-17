@@ -25,8 +25,13 @@ import { DbError, getStaysCached, startStaysCacheRefresh } from "./db.js";
 import { parseDestination } from "./destination.js";
 import { fallbackSearchProvider, type Vertical } from "./fallback-provider.js";
 import { BeApiError, beApiSearchProvider } from "./be-api-provider.js";
-import { AttractionsError, searchAttractions } from "./attractions-provider.js";
-import { FlightsError, searchFlights } from "./flights-provider.js";
+import {
+  AttractionsError,
+  getCachedAttractions,
+  searchAttractions,
+  startAttractionsCacheRefresh,
+} from "./attractions-provider.js";
+import { FlightsError, getCachedFlights, searchFlights, type FlightsRequest } from "./flights-provider.js";
 import {
   BookingError,
   BookingFlow,
@@ -123,8 +128,9 @@ const CUDDLYNEST_SEARCH_TOOL: Tool = {
         type: "string",
         enum: ["stays", "flights", "attractions"],
         description:
-          "What to search (default \"stays\"). \"attractions\" and \"flights\" need " +
-          "source \"live\". Attractions: tours and activities with a from-price. Flights: " +
+          "What to search (default \"stays\"). Attractions and flights: \"auto\"/\"db\" " +
+          "answer from a short-lived cache of earlier live searches; \"live\" for real-time " +
+          "results. Attractions: tours and activities with a from-price. Flights: " +
           "live fares from `origin` to `destination`; checkin = departure date, checkout = " +
           "return date (omit for one way); childAges required when travelling with children.",
       },
@@ -391,26 +397,30 @@ function normalizeGuests(params: any) {
 // ---------------------------------------------------------------------------
 const VERTICALS: readonly Vertical[] = ["stays", "flights", "attractions"];
 
-function unavailableVertical(destination: string, vertical: Vertical, mode: string) {
-  // Attractions and flights have no catalog DB source, only their live APIs.
+/** Attractions / flights cache miss on "auto" / "db": no API call, no fallback. */
+function notCached(destination: string, vertical: Vertical, mode: string) {
+  log("info", "Cache miss, no live call", { vertical, destination, requestedSource: mode });
   return textResult({
     query: destination,
     vertical,
     requestedSource: mode,
     source: "unavailable",
-    reason: `${vertical}_require_live_source`,
+    reason: `${vertical}_not_cached`,
     results: [],
-    note: `${vertical} have no catalog DB source; search them with source "live".`,
+    note:
+      `No cached ${vertical} for this search (the cache is filled by live searches). ` +
+      `Search with source "live" for real-time results.`,
   });
 }
 
-async function handleFlightsSearch(destination: string, params: any) {
+async function handleFlightsSearch(destination: string, params: any, mode: string) {
   const g = normalizeGuests({ ...params, adults: params.adults ?? 1 });
+  const live = mode === "live";
   try {
     if (g.children > g.childAges.length) {
       throw new FlightsError("invalid_input", "Flights need the age of each child: pass `childAges`.");
     }
-    const r = await searchFlights({
+    const req: FlightsRequest = {
       origin: String(params.origin ?? ""),
       destination,
       departureDate: g.checkin,
@@ -422,11 +432,14 @@ async function handleFlightsSearch(destination: string, params: any) {
       currency: g.currency,
       limit: params.limit,
       log,
-    });
+    };
+    const r = live ? await searchFlights(req) : getCachedFlights(req);
+    if (!r) return notCached(destination, "flights", mode);
     return textResult({
       query: destination,
       vertical: "flights",
-      source: "live",
+      source: live ? "live" : "cache",
+      cachedAt: r.cachedAt,
       provider: "flight-search-engine",
       route: r.route,
       sessionId: r.sessionId,
@@ -436,17 +449,18 @@ async function handleFlightsSearch(destination: string, params: any) {
       flights: r.flights,
       note:
         `${r.flights.length} itinerary(ies), best first. Times are local to each airport; ` +
-        `prices are customer totals for all passengers and only appear under \`pricing\`.`,
+        `prices are customer totals for all passengers and only appear under \`pricing\`.` +
+        (live ? "" : ` Cached fares from ${r.cachedAt}: indicative only, confirm with source "live" before booking.`),
     });
   } catch (e) {
     // No fallback: there is no other flights source.
     const code = e instanceof FlightsError ? e.code : "unexpected_error";
-    log("warn", "Flight search failed", { destination, code });
+    log("warn", "Flight search failed", { destination, code, requestedSource: mode });
     return textResult(
       {
         query: destination,
         vertical: "flights",
-        source: "live",
+        source: live ? "live" : "cache",
         error: e instanceof Error ? e.message : String(e),
         liveErrorCode: code,
       },
@@ -455,13 +469,16 @@ async function handleFlightsSearch(destination: string, params: any) {
   }
 }
 
-async function handleAttractionsSearch(destination: string, limit?: number) {
+async function handleAttractionsSearch(destination: string, limit: number | undefined, mode: string) {
+  const live = mode === "live";
   try {
-    const r = await searchAttractions({ destination, limit, log });
+    const r = live ? await searchAttractions({ destination, limit, log }) : getCachedAttractions(destination, limit);
+    if (!r) return notCached(destination, "attractions", mode);
     return textResult({
       query: destination,
       vertical: "attractions",
-      source: "live",
+      source: live ? "live" : "cache",
+      cachedAt: r.cachedAt,
       provider: "attractions-shopping-service",
       resolvedLocation: r.resolvedLocation,
       totalCount: r.totalCount,
@@ -469,7 +486,8 @@ async function handleAttractionsSearch(destination: string, limit?: number) {
       attractions: r.attractions,
       note:
         `${r.attractions.length} attraction(s). Prices are "from" prices for ` +
-        `pricing.date and only appear under each attraction's \`pricing\`; ratings are 0-5.`,
+        `pricing.date and only appear under each attraction's \`pricing\`; ratings are 0-5.` +
+        (live ? "" : ` Cached from ${r.cachedAt}; use source "live" for current prices.`),
     });
   } catch (e) {
     // No fallback: there is no other attractions source.
@@ -546,14 +564,11 @@ async function handleSearch(params: any) {
       true,
     );
   }
-  // Attractions and flights: explicit "live" only. Flights is a real-time supplier
-  // call (L2B); attractions follow the same rule until the backend confirms its
-  // search can't reach suppliers.
-  if (vertical === "attractions" && mode === "live") {
-    return handleAttractionsSearch(String(destination), params.limit);
-  }
-  if (vertical === "flights" && mode === "live") return handleFlightsSearch(String(destination), params);
-  if (vertical !== "stays") return unavailableVertical(String(destination), vertical, mode);
+  // Attractions and flights (AO-9 / AO-10): "auto" / "db" read the MCP's cache
+  // only; the API (a supplier call for flights, possibly for attractions) is only
+  // reached with an explicit "live" (L2B), never as an automatic fallback.
+  if (vertical === "attractions") return handleAttractionsSearch(String(destination), params.limit, mode);
+  if (vertical === "flights") return handleFlightsSearch(String(destination), params, mode);
 
   // Explicit "live" only (Option B): a real-time supplier call, which counts
   // against the Look-to-Book ratio. Never reached from "auto" or "db".
@@ -1026,6 +1041,7 @@ async function runHttp(port: number) {
   });
 
   const refresh = startStaysCacheRefresh(log);
+  const attractionsRefresh = startAttractionsCacheRefresh(log);
 
   http.listen(port, () => {
     log("info", "CuddlyNest MCP Server running on Streamable HTTP", {
@@ -1033,6 +1049,7 @@ async function runHttp(port: number) {
       endpoint: `http://localhost:${port}/mcp`,
       auth: authToken ? "bearer token required" : "open",
       cacheRefresh: refresh ? `every ${refresh.intervalMs / 3_600_000}h` : "off",
+      attractionsCacheRefresh: attractionsRefresh ? `every ${attractionsRefresh.intervalMs / 3_600_000}h` : "off",
       robotsRespected: !IGNORE_ROBOTS_TXT,
     });
   });

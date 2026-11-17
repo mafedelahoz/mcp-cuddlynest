@@ -130,6 +130,8 @@ async function withServer(label, env, fn) {
       CUDDLYNEST_ATTRACTIONS_API_URL: base,
       CUDDLYNEST_FLIGHTS_API_URL: base,
       CUDDLYNEST_CACHE_FILE: join(tmp, `${label}-cache.json`),
+      CUDDLYNEST_ATTRACTIONS_CACHE_FILE: join(tmp, `${label}-attractions-cache.json`),
+      CUDDLYNEST_FLIGHTS_CACHE_FILE: join(tmp, `${label}-flights-cache.json`),
       CUDDLYNEST_FALLBACK_LOG: join(tmp, "fallback.log"),
       ...env,
     },
@@ -175,10 +177,10 @@ try {
             (json.code ? `/${json.code}` : "") + (leaks.length ? ` leaks ${leaks.slice(0, 3).join(", ")}` : ", no price fields"));
         }
         const attr = await search({ destination: "Bangkok, Thailand", vertical: "attractions", source });
-        check(attr.json.source === "unavailable" && attr.json.reason === "attractions_require_live_source" && attr.json.results.length === 0,
+        check(attr.json.source === "unavailable" && attr.json.reason === "attractions_not_cached" && attr.json.results.length === 0,
           `${source} attractions -> unavailable/${attr.json.reason}`);
         const fl = await search({ destination: "Miami", origin: "Bogota", vertical: "flights", source, ...DATES });
-        check(fl.json.source === "unavailable" && fl.json.reason === "flights_require_live_source" && fl.json.results.length === 0,
+        check(fl.json.source === "unavailable" && fl.json.reason === "flights_not_cached" && fl.json.results.length === 0,
           `${source} flights -> unavailable/${fl.json.reason}`);
       }
     });
@@ -226,8 +228,8 @@ try {
     check(hits.attractions === before.attractions + 1 && hits.availability === before.availability && hits.token === before.token,
       "one attractions API call, no stays live API or JWT issuer call");
     check(lastAttractions?.get("search_parameter") === "Bangkok" && lastAttractions.get("user_location") === "Bangkok, Thailand" &&
-      lastAttractions.get("search_type") === "destination" && lastAttractions.get("results_per_page") === "5",
-      "query: search_parameter / user_location / search_type=destination / results_per_page");
+      lastAttractions.get("search_type") === "destination" && lastAttractions.get("results_per_page") === "50",
+      "query: search_parameter / user_location / search_type=destination / results_per_page=50 (fills the cache)");
     const list = r.json.attractions ?? [];
     check(!r.isError && r.json.source === "live" && list.length === 5 && list.every((a) => a.type === "attraction"),
       `${list.length} attractions (limit 5 of ${REAL_ACTIVITIES.activities.length})`);
@@ -235,6 +237,15 @@ try {
       "each has a /attractions/detail/{id} url and a pricing section");
     check(list.every((a) => { const { pricing, ...rest } = a; return priceKeys(rest).length === 0; }),
       "static fields of attractions carry no price/availability");
+
+    // AO-10: auto/db now answer from the cache the live search filled, with no API call.
+    const callsAfterLive = hits.attractions;
+    for (const source of ["auto", "db"]) {
+      const c = await search({ destination: "Bangkok, Thailand", vertical: "attractions", source, limit: 3 });
+      check(!c.isError && c.json.source === "cache" && c.json.attractions.length === 3 && c.json.cachedAt === r.json.cachedAt,
+        `${source} after a live search -> cache hit (${c.json.attractions?.length} attractions, cachedAt kept)`);
+    }
+    check(hits.attractions === callsAfterLive, "cache hits made no attractions API call");
 
     attractionsMode = "error";
     const broken = await search({ destination: "Bangkok, Thailand", vertical: "attractions", source: "live" });
@@ -271,6 +282,17 @@ try {
     check(list.every((f) => { const { pricing, ...rest } = f; return priceKeys(rest).length === 0; }),
       "static fields of flights carry no price/availability");
 
+    // AO-9: the same search with auto/db hits the cache, by typed city or IATA code, with no API call.
+    const flightCalls = hits.flights;
+    const same = { vertical: "flights", checkin: DATES.checkin, adults: 2, childAges: [7], infants: 1, cabinClass: "business", limit: 2 };
+    const byCity = await search({ ...same, destination: "Miami", origin: "Bogota", source: "auto" });
+    const byCode = await search({ ...same, destination: "MIA", origin: "BOG", source: "db" });
+    check(byCity.json.source === "cache" && byCity.json.flights.length === 2 && byCode.json.source === "cache" && hits.flights === flightCalls,
+      `auto by city and db by IATA -> cache hits, no flights API call (${byCity.json.source} / ${byCode.json.source})`);
+    check(!JSON.stringify(byCity.json).includes("999999.99"), "cached flights don't carry the supplier rate either");
+    const otherPax = await search({ ...same, adults: 1, destination: "Miami", origin: "Bogota", source: "auto" });
+    check(otherPax.json.reason === "flights_not_cached" && hits.flights === flightCalls, "different passengers -> cache miss, still no API call");
+
     await search({ destination: "Miami", origin: "BOG", vertical: "flights", source: "live", ...DATES });
     check(lastFlightSearch.FlightSearchRQ.SearchCriteria.OriginDestinations.length === 2 &&
       lastFlightSearch.FlightSearchRQ.SearchCriteria.OriginDestinations[1].Departure === "MIA", "checkout adds the return leg");
@@ -281,6 +303,25 @@ try {
     const unknown = await search({ destination: "Zzxq", origin: "BOG", vertical: "flights", source: "live", ...DATES });
     check(unknown.isError && unknown.json.liveErrorCode === "airport_not_found", `unknown city -> ${unknown.json.liveErrorCode}, no fallback`);
   });
+
+  console.log("\n🗂️  attractions cache refresh / expiry (AO-10)");
+  {
+    process.env.CUDDLYNEST_ATTRACTIONS_API_URL = base;
+    process.env.CUDDLYNEST_ATTRACTIONS_CACHE_FILE = join(tmp, "unit-attractions-cache.json");
+    const a = await import("./dist/attractions-provider.js");
+    attractionsMode = "ok";
+    await a.searchAttractions({ destination: "Dubai, United Arab Emirates" });
+    const ok = await a.refreshAttractionsCache();
+    check(ok.destinations === 1 && ok.refreshed === 1 && ok.failed === 0, `refresh re-reads cached destinations (${ok.refreshed}/${ok.destinations})`);
+    attractionsMode = "error";
+    const bad = await a.refreshAttractionsCache();
+    check(bad.failed === 1 && bad.failures[0]?.code === "http_error" && a.getCachedAttractions("Dubai, United Arab Emirates"),
+      "failed refresh is reported with its code and keeps the still-fresh entry");
+    attractionsMode = "ok";
+    process.env.CUDDLYNEST_ATTRACTIONS_CACHE_MAX_AGE_HOURS = "0";
+    check(a.getCachedAttractions("Dubai, United Arab Emirates") === undefined, "entries older than the max age are never served");
+    delete process.env.CUDDLYNEST_ATTRACTIONS_CACHE_MAX_AGE_HOURS;
+  }
 } finally {
   wss.close();
   mock.close();

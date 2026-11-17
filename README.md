@@ -120,13 +120,16 @@ search and `source` picks where the data comes from.
 
 | `source` | Stays | Attractions | Flights |
 | --- | --- | --- | --- |
-| `auto` | Catalog DB (cached per destination); falls back to the public site if the DB fails, has no results or the destination is ambiguous | not available | not available |
-| `db` | Catalog DB only; an error instead of a fallback | not available | not available |
+| `auto` | Catalog DB (cached per destination); falls back to the public site if the DB fails, has no results or the destination is ambiguous | Cache of earlier live searches (24 h, refreshed in the background in HTTP mode) | Cache of earlier live searches (30 min, indicative fares) |
+| `db` | Catalog DB only; an error instead of a fallback | same as `auto` | same as `auto` |
 | `live` | Real-time availability with prices (needs dates) | Tours and activities with a from-price | Real-time fares |
 
 `live` calls CuddlyNest's real-time APIs, which reach travel suppliers, so it is
 only used when a caller asks for it explicitly and never as an automatic
-fallback. A failed `live` search returns an error with `liveErrorCode`; it never
+fallback. Attractions and flights have no catalog database (their inventory
+comes from suppliers), so `auto` / `db` answer from a cache of earlier `live`
+searches and never call the API; a cache miss answers `source: "unavailable"`
+with `reason: "<vertical>_not_cached"`. Cached results carry `cachedAt`. A failed `live` search returns an error with `liveErrorCode`; it never
 falls back to another source.
 
 **Returns** (all verticals share the same static shape, and prices only ever
@@ -189,7 +192,7 @@ npm run watch
   (headless browser), `extractRoomsFromDom` (React-fiber walk)
 - `util.ts` — generic object/JSON helpers
 - `db.ts`, `cache.ts`, `destination.ts` — read-only catalog DB for stays, the
-  per-destination cache with background refresh, and destination parsing
+  JSON caches (stays, attractions, flights) with age-based expiry, and destination parsing
 - `fallback-provider.ts` — public-site fallback for `source: "auto"`
 - `auth.ts` — service JWT (fetched with an API key, cached, renewed before expiry)
 - `be-api-provider.ts` — live stays availability (`source: "live"`)

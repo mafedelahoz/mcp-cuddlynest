@@ -11,11 +11,19 @@
 // against a real staging search (BOG -> MIA, 2026-11-16). Notes:
 // docs/private/attractions-flights-notes.md (kept out of the public repo).
 //
+// AO-9: there is no flights database (fares come from suppliers), so every live
+// search is cached per route / dates / passengers / cabin / currency for a short
+// time (default 30 min, under the backend's 35-min results TTL). source "auto" /
+// "db" answer from that cache only and never call the API. There is no
+// background refresh on purpose: refreshing fares would be a supplier search.
+//
 // Prices: every amount comes as { amount, currency, api_amount, api_currency }.
 // `amount` is the customer price; `api_amount` is the supplier's rate before
 // markup and must never be exposed.
 
 import { randomUUID } from "crypto";
+
+import { JsonCache, cacheFilePath } from "./cache.js";
 
 const FLIGHTS_API_URL = (
   process.env.CUDDLYNEST_FLIGHTS_API_URL || "https://staging-flight-search-engine.cuddlynest.com"
@@ -123,6 +131,48 @@ export interface FlightsResult {
   status: string | null;
   totalCount: number | null;
   flights: Flight[];
+  /** When the fares were read from the API (now for live, earlier for cache). */
+  cachedAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Cache (AO-9)
+// ---------------------------------------------------------------------------
+
+export const flightsCache = new JsonCache({
+  label: "Flights",
+  file: cacheFilePath("CUDDLYNEST_FLIGHTS_CACHE_FILE", "flights-cache.json"),
+  maxAgeMs: () => {
+    const m = Number(process.env.CUDDLYNEST_FLIGHTS_CACHE_MAX_AGE_MINUTES ?? 30);
+    return (Number.isFinite(m) && m >= 0 ? m : 30) * 60_000;
+  },
+  maxEntries: 300,
+});
+
+const normPlace = (s: string) => s.trim().split(",")[0].trim().toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+
+/** Cache key; `from` / `to` are either the typed places or the resolved IATA codes. */
+export function flightsCacheKey(req: FlightsRequest, from: string, to: string): string {
+  return [
+    "flights",
+    `${normPlace(from)}>${normPlace(to)}`,
+    `${req.departureDate}/${req.returnDate ?? "-"}`,
+    `a${req.adults}c${[...req.childAges].sort((x, y) => x - y).join(".")}i${req.infants}`,
+    normalizeCabin(req.cabinClass),
+    req.currency,
+  ].join("|");
+}
+
+/** Cache-only read (source "auto" / "db"): never calls the API, not even autosuggest. */
+export function getCachedFlights(req: FlightsRequest): FlightsResult | undefined {
+  validate(req);
+  const hit = flightsCache.get<Omit<FlightsResult, "cachedAt">>(flightsCacheKey(req, req.origin, req.destination));
+  if (!hit) return undefined;
+  return { ...hit.value, flights: hit.value.flights.slice(0, clampLimit(req.limit)), cachedAt: hit.cachedAt };
+}
+
+function clampLimit(limit?: number): number {
+  return Math.min(Math.max(1, Math.floor(Number(limit) || 10)), MAX_LIMIT);
 }
 
 // ---------------------------------------------------------------------------
@@ -354,8 +404,8 @@ export async function searchFlights(req: FlightsRequest): Promise<FlightsResult>
   const sessionId = typeof search.body === "string" ? search.body : str(search.body?.SessionID);
   if (!sessionId) throw new FlightsError("invalid_response", "Flight search returned no session id.");
 
-  const limit = Math.min(Math.max(1, Math.floor(Number(req.limit) || 10)), MAX_LIMIT);
-  const q = new URLSearchParams({ sessionID: sessionId, sortBy: "best", page: "1", size: String(limit) });
+  // The page maximum, so the cached list can serve any `limit`.
+  const q = new URLSearchParams({ sessionID: sessionId, sortBy: "best", page: "1", size: String(MAX_LIMIT) });
   let results = await call(`/api/flight/results?${q}`);
   // The backend sometimes gives up waiting on its stream (408) while a second read
   // of the same session succeeds. Re-reading doesn't start a new supplier search.
@@ -377,11 +427,19 @@ export async function searchFlights(req: FlightsRequest): Promise<FlightsResult>
     status: results.body.Status,
     ms: Date.now() - started,
   });
-  return {
+  const full = {
     route: { origin: from.label, destination: to.label, departureDate: req.departureDate!, returnDate: req.returnDate ?? null },
     sessionId,
     status: str(results.body.Status),
     totalCount,
-    flights: flights.slice(0, limit),
+    flights,
   };
+  let cachedAt = new Date().toISOString();
+  if (flights.length) {
+    // Under the typed places and the IATA codes, so "Bogotá" and "BOG" both hit.
+    const keys = new Set([flightsCacheKey(req, req.origin, req.destination), flightsCacheKey(req, from.code, to.code)]);
+    for (const k of keys) cachedAt = flightsCache.set(k, full, undefined, { flush: false });
+    flightsCache.flush();
+  }
+  return { ...full, flights: flights.slice(0, clampLimit(req.limit)), cachedAt };
 }

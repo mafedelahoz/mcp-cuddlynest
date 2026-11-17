@@ -104,16 +104,16 @@ class MCPTester {
   }
 
   async testUnavailableVertical() {
-    console.log("\n🧭 cuddlynest_search vertical=flights / attractions without live...");
+    console.log("\n🧭 cuddlynest_search vertical=flights / attractions without live (cache miss)...");
     const cases = [
-      // Flights / attractions only go to their APIs with source "live" (covered offline in test-live-isolation.js).
-      ...["auto", "db"].map((source) => ["flights", source, /^flights_require_live_source$/]),
-      ...["auto", "db"].map((source) => ["attractions", source, /^attractions_require_live_source$/]),
+      // Flights / attractions: auto/db only read the cache (live + cache covered offline in test-live-isolation.js).
+      ...["auto", "db"].map((source) => ["flights", source, /^flights_not_cached$/]),
+      ...["auto", "db"].map((source) => ["attractions", source, /^attractions_not_cached$/]),
     ];
     for (const [vertical, source, reasonRe] of cases) {
       const res = await this.sendRequest("tools/call", {
         name: "cuddlynest_search",
-        arguments: { destination: "Cartagena, Colombia", vertical, source },
+        arguments: { destination: "Cartagena, Colombia", vertical, source, origin: "Zzqx", checkin: "2099-01-10" },
       });
       if (res.error) throw new Error(res.error.message);
       const content = JSON.parse(res.result.content[0].text);

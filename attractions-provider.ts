@@ -8,9 +8,15 @@
 //
 // Contract: Swagger on staging (the reference per the backend team; prod has the
 // same schema with Swagger off), checked against real staging responses
-// (Dubai, Bangkok, 2026-11-16). Details and open questions:
+// (Dubai, Bangkok, 2026-11-16).
+//
+// AO-10: there is no attractions database (inventory comes from suppliers via
+// this service), so every live search also fills a per-destination cache. With
+// source "auto" / "db" the MCP answers from that cache only, refreshed in the
+// background (HTTP mode) and never served past its max age. Details and open questions:
 // docs/private/attractions-flights-notes.md (kept out of the public repo).
 
+import { JsonCache, cacheFilePath, envHours } from "./cache.js";
 import { parseDestination } from "./destination.js";
 
 // Staging is the only environment confirmed so far; production's URL is TBD.
@@ -92,6 +98,26 @@ export interface AttractionsResult {
   resolvedLocation: { city: string; country: string | null; userLocation: string };
   totalCount: number | null;
   attractions: Attraction[];
+  /** When the results were read from the API (now for live, earlier for cache). */
+  cachedAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Cache (AO-10)
+// ---------------------------------------------------------------------------
+
+export const attractionsCache = new JsonCache({
+  label: "Attractions",
+  file: cacheFilePath("CUDDLYNEST_ATTRACTIONS_CACHE_FILE", "attractions-cache.json"),
+  maxAgeMs: () => envHours("CUDDLYNEST_ATTRACTIONS_CACHE_MAX_AGE_HOURS", 24) * 3_600_000,
+  maxEntries: 300,
+});
+
+type CachedAttractions = Omit<AttractionsResult, "cachedAt" | "attractions"> & { attractions: Attraction[] };
+
+/** Cache key for a destination: the normalized user_location the API is called with. */
+export function attractionsCacheKey(destination: string): string {
+  return `attractions:${buildActivitiesQuery(destination).get("user_location")!.toLowerCase().replace(/\s+/g, " ")}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -238,8 +264,9 @@ export function mapActivitiesResponse(
 // Provider
 // ---------------------------------------------------------------------------
 
-export async function searchAttractions(req: AttractionsRequest): Promise<AttractionsResult> {
-  const query = buildActivitiesQuery(req.destination, req.limit);
+async function fetchAttractions(destination: string, log?: Log): Promise<CachedAttractions> {
+  // Always the API's page maximum, so the cached list can serve any `limit`.
+  const query = buildActivitiesQuery(destination, MAX_LIMIT);
   const url = `${ATTRACTIONS_API_URL}/v2.2/activities/?${query}`;
   const started = Date.now();
 
@@ -268,19 +295,96 @@ export async function searchAttractions(req: AttractionsRequest): Promise<Attrac
     throw new AttractionsError("invalid_response", "Attractions search response has no `activities` list.");
   }
 
-  const parsed = parseDestination(req.destination);
+  const parsed = parseDestination(destination);
   const city = query.get("search_parameter")!;
   const country = parsed.kind === "ok" ? parsed.country ?? null : null;
   const { attractions, totalCount, dropped } = mapActivitiesResponse(body, { city, country });
-  req.log?.("info", "Attractions search", {
-    destination: req.destination,
-    count: attractions.length,
-    dropped,
-    ms: Date.now() - started,
-  });
-  return {
-    resolvedLocation: { city, country, userLocation: query.get("user_location")! },
-    totalCount,
-    attractions: attractions.slice(0, clampLimit(req.limit)),
+  log?.("info", "Attractions search", { destination, count: attractions.length, dropped, ms: Date.now() - started });
+  return { resolvedLocation: { city, country, userLocation: query.get("user_location")! }, totalCount, attractions };
+}
+
+/** Live search (source "live"). Also refreshes the destination's cache entry. */
+export async function searchAttractions(req: AttractionsRequest): Promise<AttractionsResult> {
+  const r = await fetchAttractions(req.destination, req.log);
+  const key = attractionsCacheKey(req.destination);
+  const cachedAt = r.attractions.length
+    ? attractionsCache.set(key, r, req.destination)
+    : new Date().toISOString();
+  return { ...r, attractions: r.attractions.slice(0, clampLimit(req.limit)), cachedAt };
+}
+
+/** Cache-only read (source "auto" / "db"): never calls the API. */
+export function getCachedAttractions(destination: string, limit?: number): AttractionsResult | undefined {
+  const hit = attractionsCache.get<CachedAttractions>(attractionsCacheKey(destination));
+  if (!hit) return undefined;
+  return { ...hit.value, attractions: hit.value.attractions.slice(0, clampLimit(limit)), cachedAt: hit.cachedAt };
+}
+
+export interface AttractionsRefreshSummary {
+  destinations: number;
+  refreshed: number;
+  emptied: number;
+  failed: number;
+  failures: { destination: string; code: string }[];
+  durationMs: number;
+}
+
+/** Re-read every cached destination from the API. Failures are counted and kept, not thrown. */
+export async function refreshAttractionsCache(log?: Log): Promise<AttractionsRefreshSummary> {
+  const started = Date.now();
+  const entries = attractionsCache.entriesList<string>();
+  const summary: AttractionsRefreshSummary = {
+    destinations: entries.length, refreshed: 0, emptied: 0, failed: 0, failures: [], durationMs: 0,
   };
+  try {
+    for (const e of entries) {
+      if (!e.meta) continue;
+      try {
+        const r = await fetchAttractions(e.meta);
+        if (r.attractions.length) {
+          attractionsCache.set(e.key, r, e.meta, { flush: false });
+          summary.refreshed++;
+        } else {
+          attractionsCache.delete(e.key, { flush: false });
+          summary.emptied++;
+        }
+      } catch (err) {
+        // The old entry stays until it ages out, so a failed refresh never serves stale data.
+        summary.failed++;
+        const code = err instanceof AttractionsError ? err.code : "unexpected_error";
+        summary.failures.push({ destination: e.meta, code });
+        log?.("warn", "Attractions cache refresh failed", { destination: e.meta, code });
+      }
+    }
+  } finally {
+    attractionsCache.flush();
+    summary.durationMs = Date.now() - started;
+  }
+  return summary;
+}
+
+let refreshTimer: NodeJS.Timeout | undefined;
+
+/** Background refresh (HTTP mode only). Interval defaults to half the max age. */
+export function startAttractionsCacheRefresh(log: Log): { intervalMs: number } | undefined {
+  if (refreshTimer) return undefined;
+  const hours = envHours(
+    "CUDDLYNEST_ATTRACTIONS_CACHE_REFRESH_INTERVAL_HOURS",
+    attractionsCache.maxAgeMs() / 3_600_000 / 2,
+  );
+  if (!(hours > 0)) return undefined;
+  const intervalMs = Math.min(Math.round(hours * 3_600_000), 2 ** 31 - 1);
+  let running = false;
+  refreshTimer = setInterval(async () => {
+    if (running) return;
+    running = true;
+    try {
+      const summary = await refreshAttractionsCache(log);
+      log(summary.failed ? "warn" : "info", "Attractions cache background refresh", summary);
+    } finally {
+      running = false;
+    }
+  }, intervalMs);
+  refreshTimer.unref();
+  return { intervalMs };
 }
