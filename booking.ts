@@ -120,6 +120,7 @@ export type BookingErrorCode =
   | "prebook_expired"
   | "price_change_not_accepted"
   | "room_unavailable"
+  | "session_expired"
   | "provider_error";
 
 export class BookingError extends Error {

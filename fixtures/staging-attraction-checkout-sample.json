@@ -1,0 +1,194 @@
+{
+  "activity_info": {
+    "partner_code": 40024,
+    "partner_name": "klook",
+    "name": "Bangkok test activity",
+    "location": "Bangkok, Thailand",
+    "date": "2026-11-25",
+    "iso_date": "2026-11-25T00:00:00",
+    "time": null,
+    "iso_time": null,
+    "timezone": "GMT +7",
+    "duration": null,
+    "iso_duration": null,
+    "duration_start_timestamp": 0,
+    "duration_end_timestamp": 0,
+    "visitors": "2 visitors",
+    "subCategory": "VR & Simulation",
+    "image": "https://res.klook.com/image/upload/activities/r2vogqjlkbqfnb9yxezs.jpg",
+    "whats_included": null,
+    "whats_excluded": null,
+    "description": "activity sub title",
+    "tags": {
+      "wheelchair_access": false,
+      "skip_line": false,
+      "smartphone_ticket": true,
+      "cancellation": true,
+      "instant_book": true
+    },
+    "package_min_pax": null,
+    "package_max_pax": null
+  },
+  "price_details": {
+    "currency": "USD",
+    "price_breakup": [
+      {
+        "description": "Person",
+        "quantity": 2,
+        "unit_price": "1.07",
+        "total_price": "2.14",
+        "visitor_type": "person",
+        "sku_id": null
+      }
+    ],
+    "subtotal": "2.14",
+    "service_fee": "0.09",
+    "is_service_fees_waived": true,
+    "total_fees": "0",
+    "total": "2.14",
+    "discount": null,
+    "cancellation_policy": "Free cancellation before redemption",
+    "voucher_applied": null,
+    "voucher_discount": null,
+    "original_total": null,
+    "final_total": null
+  },
+  "visitor_info": {
+    "heading": "Visitor info (2 persons)",
+    "import_source_post_data": true,
+    "universal_fields": {
+      "first_name": {
+        "type": "text",
+        "placeholder": null,
+        "is_required": true,
+        "label": "First Name",
+        "placeholder_v2": null,
+        "required_message": "Please provide your First Name",
+        "invalid_message": "First Name is not correct",
+        "options": null,
+        "allow_custom_value": null,
+        "depends_on": null,
+        "regex": null,
+        "max_length": null,
+        "min_length": null,
+        "text": null,
+        "value": null
+      },
+      "last_name": {
+        "type": "text",
+        "placeholder": null,
+        "is_required": true,
+        "label": "Last Name",
+        "placeholder_v2": null,
+        "required_message": "Please provide your Last Name",
+        "invalid_message": "Last Name is not correct",
+        "options": null,
+        "allow_custom_value": null,
+        "depends_on": null,
+        "regex": null,
+        "max_length": null,
+        "min_length": null,
+        "text": null,
+        "value": null
+      },
+      "email": {
+        "type": "text",
+        "placeholder": null,
+        "is_required": true,
+        "label": "Email",
+        "placeholder_v2": null,
+        "required_message": "Please provide your Email",
+        "invalid_message": "Email is not correct",
+        "options": null,
+        "allow_custom_value": null,
+        "depends_on": null,
+        "regex": null,
+        "max_length": null,
+        "min_length": null,
+        "text": null,
+        "value": null
+      },
+      "mobile": {
+        "type": "text",
+        "placeholder": null,
+        "is_required": true,
+        "label": "Phone Number",
+        "placeholder_v2": null,
+        "required_message": "Please provide your Phone Number",
+        "invalid_message": "Phone Number is not correct",
+        "options": null,
+        "allow_custom_value": null,
+        "depends_on": null,
+        "regex": null,
+        "max_length": null,
+        "min_length": null,
+        "text": null,
+        "value": null
+      },
+      "country": {
+        "type": "text",
+        "placeholder": null,
+        "is_required": true,
+        "label": "Nationality",
+        "placeholder_v2": null,
+        "required_message": "Please provide your Nationality",
+        "invalid_message": "Nationality is not correct",
+        "options": null,
+        "allow_custom_value": null,
+        "depends_on": null,
+        "regex": null,
+        "max_length": null,
+        "min_length": null,
+        "text": null,
+        "value": null
+      }
+    },
+    "visitor_types": {
+      "person": {
+        "sku_id": "822428064800",
+        "label": "Person",
+        "fields": [
+          "first_name",
+          "last_name",
+          "email",
+          "mobile",
+          "country"
+        ],
+        "skus": [
+          {
+            "sku_id": "822428064800",
+            "title": "Person"
+          }
+        ]
+      }
+    },
+    "visitors": [
+      {
+        "id": 1,
+        "type": "person",
+        "is_lead": true,
+        "field_prefix": "visitor_1"
+      },
+      {
+        "id": 2,
+        "type": "person",
+        "is_lead": false,
+        "field_prefix": "visitor_2"
+      }
+    ]
+  },
+  "provider_info": {
+    "heading": "Requested information from activity provider",
+    "import_source_post_data": true,
+    "fields": null
+  },
+  "booking_extra_info_fields": null,
+  "cancellation_text": {
+    "text": "Free cancellation before redemption"
+  },
+  "image_url": [
+    "https://res.klook.com/image/upload/activities/r2vogqjlkbqfnb9yxezs.jpg"
+  ],
+  "loyalty_info": null,
+  "cn_order_id": null
+}

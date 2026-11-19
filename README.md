@@ -9,7 +9,9 @@ A Model Context Protocol (MCP) server for searching [CuddlyNest](https://www.cud
 hotels and retrieving listing details, including **room options, prices,
 availability and cancellation policies**.
 
-Read-only by design: search and listing details only. No booking, no payment.
+Read-only by default: search and listing details only. No booking, no payment.
+Booking steps exist behind `CUDDLYNEST_ENABLE_BOOKING_TOOLS=true` (off by default);
+they never take card data, payment happens on CuddlyNest's checkout.
 
 
 ## How it gets the data
@@ -199,6 +201,9 @@ npm run watch
 - `attractions-provider.ts`, `flights-provider.ts` — live attractions and flights search
 - `booking.ts` — booking flow scaffold; its tools stay hidden until the booking
   contract is in place (`CUDDLYNEST_ENABLE_BOOKING_TOOLS`)
+- `attractions-booking.ts`, `flights-booking.ts` — attraction options →
+  live availability → checkout, and flight live price → pending booking, behind
+  the same flag. The payment hand-off is pending, so both stop before payment
 
 
 ## License

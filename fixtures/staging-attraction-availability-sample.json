@@ -1,0 +1,68 @@
+{
+  "session_id": "f5d091b8-682a-480a-ada2-276a86201313",
+  "available_times": [],
+  "currency": "USD",
+  "available_options": [
+    {
+      "id": "6936d5710f7de648237b1e12",
+      "name": "instant",
+      "package_list": [
+        {
+          "package_id": "6936d5720f7de648237b1e18",
+          "type": "standard",
+          "title": "Bangkok test activity",
+          "cancellation_text": "Free cancellation before redemption",
+          "timeslot_type": "byDay",
+          "is_time_required": false,
+          "smartphone_ticket": true,
+          "instant_ticket_delivery": true,
+          "open_hours": "",
+          "redemption_process": "",
+          "pick_up_location": "",
+          "confirmation_details": "",
+          "voucher_type_desc": "",
+          "voucher_usage_description": "Show e-voucher",
+          "subtitle": "instant - Single lunch SVIP + clothing. Daily limited offers. Awaji Island One Day Tour. \n...",
+          "selected": false,
+          "pricing": {
+            "822428064800": {
+              "label": "Person",
+              "sku_id": "822428064800",
+              "count": 2,
+              "unit_price": "1.07",
+              "total_price": "2.14",
+              "displaytext": "PERSON",
+              "date": "2026-11-25",
+              "iso_date": "2026-11-25T00:00:00"
+            }
+          },
+          "total_price": "2.14",
+          "is_unit_pricing": false,
+          "features": {
+            "included": [],
+            "optional": []
+          },
+          "tags": [],
+          "availability": {
+            "is_available": true,
+            "stock_count": 999999,
+            "max_per_booking": 0,
+            "sku_min_pax": 0
+          }
+        }
+      ]
+    }
+  ],
+  "image_url": [
+    "https://res.klook.com/image/upload/activities/r2vogqjlkbqfnb9yxezs.jpg"
+  ],
+  "cancellation_policy": [
+    "Free cancellation before redemption"
+  ],
+  "time_slot": [
+    "open_ticket"
+  ],
+  "success": true,
+  "is_price_changed": false,
+  "is_time_changed": false
+}

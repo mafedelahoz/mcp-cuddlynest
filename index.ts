@@ -40,6 +40,8 @@ import {
   redactGuest,
   type GuestDetails,
 } from "./booking.js";
+import { attractionCheckout, checkAttractionAvailability, getAttractionOptions } from "./attractions-booking.js";
+import { checkoutFlight, priceFlight } from "./flights-booking.js";
 import { appendFileSync, mkdirSync } from "fs";
 import { resolveListingPath, scrapeListing } from "./scrape-listing.js";
 
@@ -284,11 +286,180 @@ const BOOKING_STATUS_TOOL: Tool = {
   },
 };
 
+// Attractions (AO-83) and flights (AO-84) booking steps. Same gating as above;
+// availability and price are live supplier calls (L2B).
+const ATTRACTION_REF_PROPS = {
+  activityId: { type: "string", description: "The attraction's id from a cuddlynest_search attractions result." },
+  packageId: { type: "string", description: "packageId from cuddlynest_attraction_options." },
+} as const;
+
+const ATTRACTION_OPTIONS_TOOL: Tool = {
+  name: "cuddlynest_attraction_options",
+  title: "CuddlyNest attraction options",
+  annotations: { title: "CuddlyNest attraction options", readOnlyHint: true, openWorldHint: true },
+  description:
+    "Step 1 of booking an attraction. Packages, ticket types (adult, child...) with prices, and start " +
+    "times for a date. Cached prices: no supplier call and nothing is reserved.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      activityId: ATTRACTION_REF_PROPS.activityId,
+      date: { type: "string", description: "YYYY-MM-DD" },
+    },
+    required: ["activityId", "date"],
+  },
+};
+
+const ATTRACTION_AVAILABILITY_TOOL: Tool = {
+  name: "cuddlynest_attraction_availability",
+  title: "Check a CuddlyNest attraction's availability",
+  annotations: {
+    title: "Check a CuddlyNest attraction's availability",
+    readOnlyHint: true,
+    openWorldHint: true,
+  },
+  description:
+    "Step 2 of booking an attraction. Checks live with the supplier that the chosen tickets are " +
+    "available on the date and time, and returns the confirmed total and a sessionId. Only call it " +
+    "once the user has chosen the package, tickets and time and wants to book. If it answers " +
+    "available: false, offer the availableTimes / suggestions it returns.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      ...ATTRACTION_REF_PROPS,
+      date: { type: "string", description: "YYYY-MM-DD" },
+      time: { type: "string", description: "HH:MM, one of the package's times. Omit for open-date tickets." },
+      tickets: {
+        type: "array",
+        description: "Ticket types and how many of each.",
+        items: {
+          type: "object",
+          properties: { skuId: { type: "string" }, count: { type: "integer", minimum: 1 } },
+          required: ["skuId", "count"],
+        },
+      },
+    },
+    required: ["activityId", "packageId", "date", "tickets"],
+  },
+};
+
+const ATTRACTION_CHECKOUT_TOOL: Tool = {
+  name: "cuddlynest_attraction_checkout",
+  title: "CuddlyNest attraction checkout",
+  annotations: { title: "CuddlyNest attraction checkout", readOnlyHint: true, openWorldHint: true },
+  description:
+    "Step 3 of booking an attraction. Final price with fees, cancellation policy and the details " +
+    "each traveler must give, for a sessionId from the availability check. Nothing is booked or " +
+    "charged. Payment happens on CuddlyNest; never ask the user for card details.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      sessionId: { type: "string" },
+      ...ATTRACTION_REF_PROPS,
+      currency: { type: "string", description: "ISO 4217, default USD." },
+    },
+    required: ["sessionId", "activityId", "packageId"],
+  },
+};
+
+const FLIGHT_REF_PROPS = {
+  sessionId: { type: "string", description: "sessionId of a cuddlynest_search flights result with source \"live\"." },
+  flightId: { type: "string", description: "The flight's id in that result." },
+  currency: { type: "string", description: "ISO 4217, default USD." },
+} as const;
+
+const FLIGHT_PRICE_TOOL: Tool = {
+  name: "cuddlynest_flight_price",
+  title: "Confirm a CuddlyNest flight price",
+  annotations: { title: "Confirm a CuddlyNest flight price", readOnlyHint: true, openWorldHint: true },
+  description:
+    "Step 1 of booking a flight. Re-prices the chosen flight live with the airline/supplier: final " +
+    "total with taxes and fees, fare rules and baggage. Only call it once the user has chosen this " +
+    "flight and wants to book. If the price went up or the flight was substituted, tell the user.",
+  inputSchema: { type: "object", properties: FLIGHT_REF_PROPS, required: ["sessionId", "flightId"] },
+};
+
+const FLIGHT_CHECKOUT_TOOL: Tool = {
+  name: "cuddlynest_flight_checkout",
+  title: "Hold a CuddlyNest flight booking",
+  annotations: {
+    title: "Hold a CuddlyNest flight booking",
+    readOnlyHint: false,
+    destructiveHint: false,
+    openWorldHint: true,
+  },
+  description:
+    "Step 2 of booking a flight. Re-checks the price and creates a pending booking with the " +
+    "passengers' details (names exactly as on their travel documents). Nothing is charged and no " +
+    "ticket is issued. Only call it after cuddlynest_flight_price and once the user confirmed the " +
+    "price and gave the details. Never ask for card details.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      ...FLIGHT_REF_PROPS,
+      passengers: {
+        type: "array",
+        description: "One entry per traveler, the same counts as the search.",
+        items: {
+          type: "object",
+          properties: {
+            type: { type: "string", enum: ["adult", "child", "infant"] },
+            title: { type: "string", enum: ["mr", "mrs", "ms", "miss", "dr", "master"] },
+            firstName: { type: "string" },
+            lastName: { type: "string" },
+            gender: { type: "string", enum: ["m", "f", "o"] },
+            dateOfBirth: { type: "string", description: "YYYY-MM-DD" },
+            nationality: { type: "string", description: "ISO alpha-2, e.g. CO" },
+            document: {
+              type: "object",
+              description: "Travel document, when the route needs one.",
+              properties: {
+                type: { type: "string", description: "e.g. passport" },
+                number: { type: "string" },
+                issuingCountry: { type: "string", description: "ISO alpha-2" },
+                expiryDate: { type: "string", description: "YYYY-MM-DD" },
+              },
+              required: ["type", "number", "issuingCountry", "expiryDate"],
+            },
+          },
+          required: ["type", "title", "firstName", "lastName", "gender", "dateOfBirth", "nationality"],
+        },
+      },
+      contact: {
+        type: "object",
+        properties: {
+          email: { type: "string" },
+          phoneCountryCode: { type: "string", description: "e.g. +57" },
+          phoneNumber: { type: "string" },
+          address: {
+            type: "object",
+            properties: {
+              street: { type: "string" },
+              city: { type: "string" },
+              state: { type: "string" },
+              postalCode: { type: "string" },
+              country: { type: "string", description: "ISO alpha-2" },
+            },
+            required: ["street", "city", "state", "postalCode", "country"],
+          },
+        },
+        required: ["email", "phoneCountryCode", "phoneNumber", "address"],
+      },
+    },
+    required: ["sessionId", "flightId", "passengers", "contact"],
+  },
+};
+
 const BOOKING_TOOLS = [
   BOOKING_QUOTE_TOOL,
   BOOKING_PREBOOK_TOOL,
   BOOKING_CHECKOUT_TOOL,
   BOOKING_STATUS_TOOL,
+  ATTRACTION_OPTIONS_TOOL,
+  ATTRACTION_AVAILABILITY_TOOL,
+  ATTRACTION_CHECKOUT_TOOL,
+  FLIGHT_PRICE_TOOL,
+  FLIGHT_CHECKOUT_TOOL,
 ] as const;
 const BOOKING_TOOL_NAMES = new Set<string>(BOOKING_TOOLS.map((t) => t.name));
 
@@ -752,10 +923,16 @@ async function handleListingDetails(params: any) {
   });
 }
 
-/** Tool arguments safe for logs: booking guest details are masked. */
+/** Tool arguments safe for logs: booking guest, passenger and contact details are masked. */
 function loggableArguments(args: any) {
-  if (!args || typeof args !== "object" || !args.guest) return args;
-  return { ...args, guest: redactGuest(args.guest as GuestDetails) };
+  if (!args || typeof args !== "object") return args;
+  if (!args.guest && !args.passengers && !args.contact) return args;
+  return {
+    ...args,
+    ...(args.guest ? { guest: redactGuest(args.guest as GuestDetails) } : {}),
+    ...(args.passengers ? { passengers: Array.isArray(args.passengers) ? args.passengers.length : "***" } : {}),
+    ...(args.contact ? { contact: "***" } : {}),
+  };
 }
 
 // One flow per process: HTTP mode builds a new MCP server per request, and a
@@ -815,6 +992,75 @@ async function handleBooking(name: string, params: any) {
           step: "status",
           provider: bookingProvider.name,
           ...(await bookingFlow.status(String(params.bookingReference ?? ""))),
+        });
+      case "cuddlynest_attraction_options":
+        return textResult({
+          vertical: "attractions",
+          step: "options",
+          ...(await getAttractionOptions(String(params.activityId ?? ""), String(params.date ?? ""), log)),
+          note: "Prices are per ticket from cache. Next, once the user picked: cuddlynest_attraction_availability.",
+        });
+      case "cuddlynest_attraction_availability": {
+        const r = await checkAttractionAvailability({
+          activityId: String(params.activityId ?? ""),
+          packageId: String(params.packageId ?? ""),
+          date: String(params.date ?? ""),
+          time: params.time ? String(params.time) : undefined,
+          tickets: Array.isArray(params.tickets)
+            ? params.tickets.map((t: any) => ({ skuId: String(t?.skuId ?? ""), count: Number(t?.count) }))
+            : [],
+          log,
+        });
+        return textResult({
+          vertical: "attractions",
+          step: "availability",
+          ...r,
+          note: r.available
+            ? "Available. Next: cuddlynest_attraction_checkout with this sessionId."
+            : "Not available as requested: offer the user the alternatives returned.",
+        });
+      }
+      case "cuddlynest_attraction_checkout":
+        return textResult({
+          vertical: "attractions",
+          step: "checkout",
+          ...(await attractionCheckout({
+            sessionId: String(params.sessionId ?? ""),
+            activityId: String(params.activityId ?? ""),
+            packageId: String(params.packageId ?? ""),
+            currency: String(params.currency ?? "USD").toUpperCase(),
+            log,
+          })),
+        });
+      case "cuddlynest_flight_price": {
+        const r = await priceFlight({
+          sessionId: String(params.sessionId ?? ""),
+          flightId: String(params.flightId ?? ""),
+          currency: String(params.currency ?? "USD").toUpperCase(),
+          log,
+        });
+        return textResult({
+          vertical: "flights",
+          step: "price",
+          ...r,
+          note:
+            r.substituted || r.priceChange?.requiresAcceptance
+              ? "The flight or its price changed: tell the user and get their OK before cuddlynest_flight_checkout."
+              : "Price confirmed. Next, with the passengers' details: cuddlynest_flight_checkout.",
+        });
+      }
+      case "cuddlynest_flight_checkout":
+        return textResult({
+          vertical: "flights",
+          step: "checkout",
+          ...(await checkoutFlight({
+            sessionId: String(params.sessionId ?? ""),
+            flightId: String(params.flightId ?? ""),
+            currency: String(params.currency ?? "USD").toUpperCase(),
+            passengers: Array.isArray(params.passengers) ? params.passengers : [],
+            contact: params.contact ?? {},
+            log,
+          })),
         });
     }
     return textResult({ error: `Unknown booking tool ${name}` }, true);
@@ -909,17 +1155,11 @@ function createMcpServer(): Server {
       case "cuddlynest_listing_details":
         result = await handleListingDetails(request.params.arguments);
         break;
-      case "cuddlynest_booking_quote":
-      case "cuddlynest_booking_prebook":
-      case "cuddlynest_booking_checkout":
-      case "cuddlynest_booking_status":
-        if (!isBookingEnabled()) {
+      default:
+        if (!isBookingEnabled() || !BOOKING_TOOL_NAMES.has(request.params.name)) {
           throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${request.params.name}`);
         }
         result = await handleBooking(request.params.name, request.params.arguments);
-        break;
-      default:
-        throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${request.params.name}`);
     }
 
     log("info", "Tool call completed", {

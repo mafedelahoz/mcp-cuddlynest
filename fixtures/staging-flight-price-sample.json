@@ -1,0 +1,149 @@
+{
+  "FlightPriceRS": {
+    "SessionID": "07309cdb-be47-4190-b9cd-dfde26a33e88",
+    "Status": "Confirmed",
+    "ResultsTTL": 2085,
+    "PaxFareBreakupAvailable": false,
+    "Itinerary": {
+      "ItineraryID": "off_0350IKMsNxXcybT7aPe2OO",
+      "Partner": {
+        "Code": "1",
+        "Name": "Duffel"
+      },
+      "Origin": "BOG",
+      "Destination": "MIA",
+      "Price": {
+        "Original": {
+          "BaseAmount": {
+            "amount": 103.86,
+            "currency": "USD",
+            "api_currency": "USD",
+            "api_amount": 999999.99
+          },
+          "TotalTax": {
+            "amount": 17.0,
+            "currency": "USD",
+            "api_currency": "USD",
+            "api_amount": 999999.99
+          },
+          "TotalAmount": {
+            "amount": 130.53,
+            "currency": "USD",
+            "api_currency": "USD",
+            "api_amount": 999999.99
+          }
+        },
+        "Updated": {
+          "BaseAmount": {
+            "amount": 103.86,
+            "currency": "USD",
+            "api_currency": "USD",
+            "api_amount": 999999.99
+          },
+          "TotalTax": {
+            "amount": 17.0,
+            "currency": "USD",
+            "api_currency": "USD",
+            "api_amount": 999999.99
+          },
+          "TotalAmount": {
+            "amount": 130.53,
+            "currency": "USD",
+            "api_currency": "USD",
+            "api_amount": 999999.99
+          }
+        }
+      },
+      "FareRule": {
+        "Refundable": true,
+        "Changeable": false,
+        "Refund": {
+          "amount": 20.0,
+          "currency": "USD",
+          "api_currency": "USD",
+          "api_amount": 999999.99
+        }
+      },
+      "CabinClass": "economy",
+      "Baggages": [
+        {
+          "PassengerID": "pas_0000BCbeTt1B47delAVoKk",
+          "Type": "ADT",
+          "Baggages": [
+            {
+              "SegmentID": "seg_0000BCbeTt9gYURbBYUbcK",
+              "Type": "checked",
+              "Quantity": 1,
+              "IsChargeable": false,
+              "LegTypes": [
+                "outbound"
+              ]
+            },
+            {
+              "SegmentID": "seg_0000BCbeTt9gYURbBYUbcK",
+              "Type": "carry_on",
+              "Quantity": 1,
+              "IsChargeable": false,
+              "LegTypes": [
+                "outbound"
+              ]
+            },
+            {
+              "SegmentID": "",
+              "Type": "cabin",
+              "Quantity": 1,
+              "IsChargeable": false,
+              "Source": "cabin_default",
+              "IsEstimate": true,
+              "Basis": "cabin",
+              "Included": true,
+              "EstimatedFields": [
+                "Quantity",
+                "Included"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "Adjustments": [
+      {
+        "Type": "service_fee",
+        "Percent": 8.0,
+        "Amount": 9.67,
+        "Code": null,
+        "IsValid": null,
+        "ErrorMessage": null,
+        "ApplyServiceFee": true
+      }
+    ],
+    "Error": null,
+    "Flight_Detail": null,
+    "Substituted": false,
+    "SubstitutionReason": null,
+    "Addons": {
+      "ItineraryID": "off_0350IKMsNxXcybT7aPe2OO",
+      "Partner": {
+        "Code": "duffel",
+        "Name": "Duffel"
+      },
+      "Baggages": [],
+      "Meals": [],
+      "Seats": []
+    },
+    "SeatMaps": [
+      {
+        "SegmentId": "seg_0000BCbeTt9gYURbBYUbcK",
+        "Origin": "Bogota",
+        "Destination": "Miami",
+        "SeatMapAvailable": true,
+        "Cabins": [],
+        "Required": false
+      }
+    ],
+    "SeatSelection": "paid",
+    "SeatSelectionRequired": false,
+    "AdditionalItineraries": [],
+    "AdditionalItinerariesComplete": true
+  }
+}
