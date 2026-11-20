@@ -168,7 +168,9 @@ Static basics **and** rooms/pricing for one hotel.
 `rooms.units[]` is the extracted room offers, each with `title`, `partnerName`,
 `unitPrice`, `currency`, `remainingRooms`, `guests`, `cancellationPolicyType`,
 `cancellationPolicyText`, `priceBreakdown`, `roomFilters`. `rooms` also carries
-`fromPrice`, `partnersSeen`, `listingUrl`, `scrapedAt`.
+`fromPrice`, `partnersSeen`, `listingUrl`, `scrapedAt`. With the booking tools
+enabled, each unit adds `bookingOptions[]` (one per rate: meal plan and
+cancellation type, price, and the `offer` ids `cuddlynest_booking_checkout` takes).
 
 ---
 
@@ -199,8 +201,9 @@ npm run watch
 - `auth.ts` — service JWT (fetched with an API key, cached, renewed before expiry)
 - `be-api-provider.ts` — live stays availability (`source: "live"`)
 - `attractions-provider.ts`, `flights-provider.ts` — live attractions and flights search
-- `booking.ts` — booking flow scaffold; its tools stay hidden until the booking
-  contract is in place (`CUDDLYNEST_ENABLE_BOOKING_TOOLS`)
+- `booking.ts` — stays booking: a room rate → Request to Book → CuddlyNest
+  checkout link, where the user sees the final price and pays. Hidden unless
+  `CUDDLYNEST_ENABLE_BOOKING_TOOLS=true`; booking status has no API yet
 - `attractions-booking.ts`, `flights-booking.ts` — attraction options →
   live availability → checkout, and flight live price → pending booking, behind
   the same flag. The payment hand-off is pending, so both stop before payment

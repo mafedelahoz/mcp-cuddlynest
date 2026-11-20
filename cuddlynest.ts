@@ -11,7 +11,7 @@
 
 import fetch from "node-fetch";
 import * as cheerio from "cheerio";
-import type { RoomOffer } from "./scrape-listing.js";
+import type { BookingOption, RoomOffer } from "./scrape-listing.js";
 
 export const BASE_URL = "https://www.cuddlynest.com";
 export const AUTOSUGGEST_URL = "https://autosuggestion-2-0.cuddlynest.com/";
@@ -486,10 +486,35 @@ export interface ShapedUnit {
   cancellationPolicyText?: string[];
   priceBreakdown?: any;
   roomFilters: string[];
+  /** Bookable rates (meal plan / policy); `offer` goes to cuddlynest_booking_checkout. */
+  bookingOptions?: ShapedBookingOption[];
+}
+
+export interface ShapedBookingOption {
+  rate: string | null;
+  cancellationPolicyType: string | null;
+  unitPrice: number | null;
+  offer: { productId: string; roomId: string; recordId?: string; redisKey?: string; roomRedisKey?: string };
+}
+
+function shapeBookingOption(o: BookingOption): ShapedBookingOption {
+  const opt = (v: unknown) => (v == null || v === "" ? undefined : String(v));
+  return {
+    rate: o.extra_title ?? o.group_title ?? null,
+    cancellationPolicyType: o.cancellation_policy_type ?? null,
+    unitPrice: o.unit_price != null ? Number(o.unit_price) : null,
+    offer: {
+      productId: String(o.product_id),
+      roomId: String(o.room_id),
+      recordId: opt(o.record_id),
+      redisKey: opt(o.redis_key),
+      roomRedisKey: opt(o.room_redis_key),
+    },
+  };
 }
 
 /** A scraped RoomOffer -> compact shape for the tool result. */
-export function shapeUnit(u: RoomOffer, requestedCurrency: string): ShapedUnit {
+export function shapeUnit(u: RoomOffer, requestedCurrency: string, withBookingOptions = false): ShapedUnit {
   return {
     title: u?.title ?? "Room",
     partnerName: u?.partner_name ?? "unknown",
@@ -503,5 +528,6 @@ export function shapeUnit(u: RoomOffer, requestedCurrency: string): ShapedUnit {
       : undefined,
     priceBreakdown: u?.price_breakdown,
     roomFilters: Array.isArray(u?.room_filters) ? u.room_filters : [],
+    ...(withBookingOptions ? { bookingOptions: (u?.booking_options ?? []).map(shapeBookingOption) } : {}),
   };
 }

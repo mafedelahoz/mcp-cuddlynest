@@ -97,7 +97,17 @@ try {
   // Rebuild the real page's DOM + React-fiber shape from the captured fixture.
   await page.evaluate((rooms) => {
     const root = document.getElementById("root");
-    for (const room of rooms) {
+    // Room groups as the live page shapes them (values simulated): a policy group
+    // whose `extras` are the bookable rates (meal plans).
+    const groups = [{
+      group_title: "Non-refundable", cancellation_policy_type: "non_refundable", record_id: 22,
+      id: "sim-group", redis_key: "sim_rk", room_redis_key: "sim_rrk",
+      extras: [
+        { product_id: "1_9000001", id: "sim-rate-a", record_id: 22, redis_key: "sim_rk", room_redis_key: "sim_rrk", extra_type: "no_meal", extra_title: "No Meal Included", unit_price: 384 },
+        { product_id: "1_9000001", id: "sim-rate-b", record_id: 22, redis_key: "sim_rk", extra_type: "breakfast", extra_title: "Breakfast", unit_price: 410 },
+      ],
+    }];
+    for (const [i, room] of rooms.entries()) {
       const wrapper = document.createElement("div");
       const priceSpan = document.createElement("span");
       priceSpan.textContent = `COL$${room.unit_price}`;
@@ -107,7 +117,7 @@ try {
       // with the `roomGroups` key the detector also checks for.
       priceSpan.__reactFiber$test = {
         memoizedProps: { className: "price-leaf" },
-        return: { memoizedProps: { ...room, roomGroups: {} }, return: null },
+        return: { memoizedProps: { ...room, roomGroups: i === 0 ? groups : {} }, return: null },
       };
     }
     const fromDiv = document.createElement("div");
@@ -149,6 +159,16 @@ try {
   );
 
   check("fromPriceText picked up", result.fromPriceText === "COL$742,637");
+
+  const opts = result.rooms.find((r) => r.title === fixture.rooms[0].title && r.partner_name === fixture.rooms[0].partner_name)?.booking_options ?? [];
+  check(
+    "booking options: one per rate, with the Request to Book ids",
+    opts.length === 2 &&
+      opts[0].room_id === "sim-rate-a" && opts[0].product_id === "1_9000001" && opts[0].redis_key === "sim_rk" &&
+      opts[0].room_redis_key === "sim_rrk" && opts[0].record_id === 22 && opts[0].group_title === "Non-refundable" &&
+      opts[1].extra_title === "Breakfast" && opts[1].room_redis_key === "sim_rrk",
+  );
+  check("rooms without groups have no booking options", result.rooms.filter((r) => r.booking_options?.length).length === 1);
 } finally {
   await browser.close();
 }

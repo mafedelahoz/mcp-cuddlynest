@@ -34,11 +34,9 @@ import {
 import { FlightsError, getCachedFlights, searchFlights, type FlightsRequest } from "./flights-provider.js";
 import {
   BookingError,
-  BookingFlow,
-  bookingProvider,
+  getStayBookingStatus,
   isBookingEnabled,
-  redactGuest,
-  type GuestDetails,
+  requestToBook,
 } from "./booking.js";
 import { attractionCheckout, checkAttractionAvailability, getAttractionOptions } from "./attractions-booking.js";
 import { checkoutFlight, priceFlight } from "./flights-booking.js";
@@ -198,79 +196,38 @@ const CUDDLYNEST_LISTING_DETAILS_TOOL: Tool = {
 const CUDDLYNEST_TOOLS = [CUDDLYNEST_SEARCH_TOOL, CUDDLYNEST_LISTING_DETAILS_TOOL] as const;
 
 // ---------------------------------------------------------------------------
-// Booking tools (AO-16). Hidden unless CUDDLYNEST_ENABLE_BOOKING_TOOLS=true:
-// the backend booking contract isn't available yet, so they'd only answer
-// "contract_pending". Pre-book is a live supplier call (L2B): these tools are
-// only for an explicit booking flow, never for recommendations.
+// Booking tools. Hidden unless CUDDLYNEST_ENABLE_BOOKING_TOOLS=true. Request to
+// Book starts the supplier pre-book, a live call (L2B): these tools are only for
+// an explicit booking flow, never for recommendations.
 // ---------------------------------------------------------------------------
-const ROOM_REF_PROPS = {
-  productId: { type: "string", description: "Stay id / product_id." },
-  searchId: { type: "string", description: "search_id of the priced room offer." },
-  roomContractSetId: { type: "string", description: "room_contract_set_id of the priced room offer." },
-  redisKey: { type: "string", description: "redis_key of the priced room offer, when given." },
-} as const;
-
-const BOOKING_QUOTE_TOOL: Tool = {
-  name: "cuddlynest_booking_quote",
-  title: "Quote a CuddlyNest room",
-  annotations: { title: "Quote a CuddlyNest room", readOnlyHint: true, openWorldHint: true },
-  description:
-    "Step 1 of booking. Price one specific room offer (ids from the room-level live prices " +
-    "result) for the given dates and guests. Returns a quoteId that expires. No booking is made.",
-  inputSchema: {
-    type: "object",
-    properties: { ...ROOM_REF_PROPS, ...GUEST_PROPS },
-    required: ["productId", "searchId", "roomContractSetId", "checkin", "checkout"],
-  },
-};
-
-const BOOKING_PREBOOK_TOOL: Tool = {
-  name: "cuddlynest_booking_prebook",
-  title: "Confirm a CuddlyNest room price",
-  annotations: { title: "Confirm a CuddlyNest room price", readOnlyHint: false, destructiveHint: false, openWorldHint: true },
-  description:
-    "Step 2 of booking. Re-confirms price and availability with the supplier for a quoteId. " +
-    "Only call it when the user has chosen this room and wants to book. If the price went up, " +
-    "tell the user before going to checkout.",
-  inputSchema: {
-    type: "object",
-    properties: { quoteId: { type: "string" } },
-    required: ["quoteId"],
-  },
-};
-
 const BOOKING_CHECKOUT_TOOL: Tool = {
   name: "cuddlynest_booking_checkout",
   title: "Get the CuddlyNest checkout link",
   annotations: { title: "Get the CuddlyNest checkout link", readOnlyHint: false, destructiveHint: false, openWorldHint: true },
   description:
-    "Step 3 of booking. Returns the CuddlyNest checkout link where the user reviews and pays. " +
-    "Payment always happens on CuddlyNest; never ask the user for card details. Lead-guest " +
-    "details are optional (they can be entered at checkout). If the price went up at pre-book, " +
-    "pass acceptPriceChange: true only after the user agreed.",
+    "Book a stay: creates the booking request for one room rate and returns the CuddlyNest " +
+    "checkout link. Pass one entry of `bookingOptions[].offer` from cuddlynest_listing_details " +
+    "(same dates and guests). Only call it when the user has chosen that rate and wants to book. " +
+    "The checkout page shows the re-confirmed final price and cancellation policy, and the user " +
+    "pays there; never ask the user for card details.",
   inputSchema: {
     type: "object",
     properties: {
-      prebookId: { type: "string" },
-      acceptPriceChange: { type: "boolean" },
-      guest: {
+      offer: {
         type: "object",
-        description: "Optional lead guest, to prefill checkout.",
+        description: "A bookingOptions[].offer from cuddlynest_listing_details, unchanged.",
         properties: {
-          title: { type: "string" },
-          firstName: { type: "string" },
-          lastName: { type: "string" },
-          email: { type: "string" },
-          phoneCountryCode: { type: "string", description: "e.g. +57" },
-          phoneNumber: { type: "string" },
-          country: { type: "string", description: "ISO alpha-2, e.g. CO" },
-          dateOfBirth: { type: "string", description: "YYYY-MM-DD" },
-          remarks: { type: "string" },
+          productId: { type: "string" },
+          roomId: { type: "string" },
+          recordId: { type: "string" },
+          redisKey: { type: "string" },
+          roomRedisKey: { type: "string" },
         },
-        required: ["firstName", "lastName", "email", "phoneCountryCode", "phoneNumber", "country"],
+        required: ["productId", "roomId"],
       },
+      ...GUEST_PROPS,
     },
-    required: ["prebookId"],
+    required: ["offer", "checkin", "checkout"],
   },
 };
 
@@ -451,8 +408,6 @@ const FLIGHT_CHECKOUT_TOOL: Tool = {
 };
 
 const BOOKING_TOOLS = [
-  BOOKING_QUOTE_TOOL,
-  BOOKING_PREBOOK_TOOL,
   BOOKING_CHECKOUT_TOOL,
   BOOKING_STATUS_TOOL,
   ATTRACTION_OPTIONS_TOOL,
@@ -886,7 +841,7 @@ async function handleListingDetails(params: any) {
         },
         { timeoutMs: SCRAPE_TIMEOUT_MS, log },
       );
-      const units = result.rooms.map((u) => shapeUnit(u, g.currency));
+      const units = result.rooms.map((u) => shapeUnit(u, g.currency, isBookingEnabled()));
       rooms = {
         listingUrl: result.url,
         // "From <price>" header off the page when present; otherwise the cheapest
@@ -923,33 +878,31 @@ async function handleListingDetails(params: any) {
   });
 }
 
-/** Tool arguments safe for logs: booking guest, passenger and contact details are masked. */
+/** Tool arguments safe for logs: passenger and contact details are masked. */
 function loggableArguments(args: any) {
   if (!args || typeof args !== "object") return args;
-  if (!args.guest && !args.passengers && !args.contact) return args;
+  if (!args.passengers && !args.contact) return args;
   return {
     ...args,
-    ...(args.guest ? { guest: redactGuest(args.guest as GuestDetails) } : {}),
     ...(args.passengers ? { passengers: Array.isArray(args.passengers) ? args.passengers.length : "***" } : {}),
     ...(args.contact ? { contact: "***" } : {}),
   };
 }
 
-// One flow per process: HTTP mode builds a new MCP server per request, and a
-// quote must survive until its pre-book/checkout calls.
-const bookingFlow = new BookingFlow(bookingProvider, { log });
-
 async function handleBooking(name: string, params: any) {
   try {
     switch (name) {
-      case "cuddlynest_booking_quote": {
+      case "cuddlynest_booking_checkout": {
         const g = normalizeGuests(params);
-        const quote = await bookingFlow.quote(
+        const o = params.offer ?? {};
+        const opt = (v: unknown) => (v == null || v === "" ? undefined : String(v));
+        const r = await requestToBook(
           {
-            productId: String(params.productId ?? ""),
-            searchId: String(params.searchId ?? ""),
-            roomContractSetId: String(params.roomContractSetId ?? ""),
-            redisKey: params.redisKey ? String(params.redisKey) : undefined,
+            productId: String(o.productId ?? ""),
+            roomId: String(o.roomId ?? ""),
+            recordId: opt(o.recordId),
+            redisKey: opt(o.redisKey),
+            roomRedisKey: opt(o.roomRedisKey),
           },
           {
             checkin: String(g.checkin ?? ""),
@@ -961,38 +914,20 @@ async function handleBooking(name: string, params: any) {
             rooms: g.rooms,
             currency: g.currency.toUpperCase(),
           },
+          { log },
         );
-        return textResult({ step: "quote", provider: bookingProvider.name, ...quote });
-      }
-      case "cuddlynest_booking_prebook": {
-        const prebook = await bookingFlow.prebook(String(params.quoteId ?? ""));
         return textResult({
-          step: "prebook",
-          provider: bookingProvider.name,
-          ...prebook,
-          note: prebook.priceChange.requiresAcceptance
-            ? "The price went up since the quote. Tell the user and get their OK before checkout."
-            : "Price confirmed. Next: cuddlynest_booking_checkout.",
-        });
-      }
-      case "cuddlynest_booking_checkout": {
-        const r = await bookingFlow.checkout(String(params.prebookId ?? ""), {
-          acceptPriceChange: params.acceptPriceChange === true,
-          guest: params.guest as GuestDetails | undefined,
-        });
-        return textResult({
+          vertical: "stays",
           step: "checkout",
-          provider: bookingProvider.name,
           ...r,
-          note: "Send the user to checkoutUrl to review and pay on CuddlyNest.",
+          payment: { status: "handoff", method: "cuddlynest_checkout" },
+          note:
+            "Send the user to checkoutUrl. It shows the final price and cancellation policy; " +
+            "if the price changed, the page says so before they pay.",
         });
       }
       case "cuddlynest_booking_status":
-        return textResult({
-          step: "status",
-          provider: bookingProvider.name,
-          ...(await bookingFlow.status(String(params.bookingReference ?? ""))),
-        });
+        return await getStayBookingStatus(String(params.bookingReference ?? ""));
       case "cuddlynest_attraction_options":
         return textResult({
           vertical: "attractions",

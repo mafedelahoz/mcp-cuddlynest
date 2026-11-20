@@ -1,22 +1,23 @@
-// Booking flow for the CN MCP (AO-16): quote -> pre-book (price confirm) ->
-// checkout hand-off -> status.
+// Stays booking for the CN MCP (AO-82): a room rate -> Request to Book -> the
+// CuddlyNest checkout URL, where the user sees the re-confirmed price and
+// cancellation policy (side widget), enters card details and pays (Stripe).
 //
-// The steps mirror how CuddlyNest bookings work today: a priced room is
-// identified by search_id / room_contract_set_id / redis_key, the price is
-// re-confirmed with the supplier before payment, and payment happens on
-// CuddlyNest's checkout. The MCP never handles card data.
-//
-// What's ours and done here: input validation, price-change detection, quote
-// expiry, flow ordering, and PII-safe logging. What's NOT known yet: the backend
-// endpoints and their request/response shapes. Those go behind BookingProvider;
-// until the contract arrives the active provider is `pendingBookingProvider`,
-// which answers "contract_pending". To switch, implement the backend provider and
-// change `bookingProvider` at the bottom of this file.
-//
-// L2B: pre-book is a live supplier call. These tools only exist when
-// CUDDLYNEST_ENABLE_BOOKING_TOOLS=true, and nothing else in the server calls them.
+// Request to Book (checkout-request-to-book service, JWT as Bearer) creates the
+// enquiry and starts the supplier pre-book, so it is a live supplier call (L2B):
+// only for an explicit booking flow, behind CUDDLYNEST_ENABLE_BOOKING_TOOLS. The
+// MCP never handles card data. There is no booking-status API yet.
 
-import { randomUUID } from "crypto";
+import { AuthError, getAccessToken, invalidateAccessToken } from "./auth.js";
+
+// Read per call so tests (and a running server's env) can point it elsewhere.
+const apiUrl = () =>
+  (process.env.CUDDLYNEST_REQUEST_TO_BOOK_API_URL || "https://staging-checkout-request-to-book.cuddlynest.com").replace(
+    /\/+$/,
+    "",
+  );
+const timeoutMs = () => parseInt(process.env.CUDDLYNEST_REQUEST_TO_BOOK_TIMEOUT_MS || "30000", 10);
+
+type Log = (level: "info" | "warn" | "error", message: string, data?: any) => void;
 
 // ---------------------------------------------------------------------------
 // Types (our own names, not the backend's)
@@ -27,12 +28,14 @@ export interface Money {
   currency: string;
 }
 
-/** Identifies one priced room offer, as returned by the room-level live prices API. */
-export interface RoomRef {
+/** One bookable room rate, as listed under `bookingOptions` by cuddlynest_listing_details. */
+export interface StayOffer {
+  /** Rate product_id, e.g. "3234329_4264955" (not the plain hotel id). */
   productId: string;
-  searchId: string;
-  roomContractSetId: string;
+  roomId: string;
+  recordId?: string;
   redisKey?: string;
+  roomRedisKey?: string;
 }
 
 export interface StayRequest {
@@ -46,78 +49,15 @@ export interface StayRequest {
   currency: string;
 }
 
-export interface RoomGuest {
-  title?: string;
-  firstName: string;
-  lastName: string;
-}
-
-/** Lead guest; optional at hand-off (the user can fill it in on our checkout). */
-export interface GuestDetails {
-  title?: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneCountryCode: string; // e.g. "+57"
-  phoneNumber: string;
-  country: string; // ISO 3166-1 alpha-2
-  dateOfBirth?: string; // YYYY-MM-DD
-  remarks?: string;
-  roomGuests?: RoomGuest[];
-}
-
-export interface CancellationPolicy {
-  refundable: boolean;
-  /** Free cancellation until this ISO time, when known. */
-  freeCancellationUntil?: string;
-  text?: string[];
-}
-
-export interface Quote {
-  quoteId: string;
-  room: RoomRef;
-  stay: StayRequest;
-  total: Money;
-  cancellation?: CancellationPolicy;
-  expiresAt: string; // ISO
-}
-
-export interface PreBook {
-  prebookId: string;
-  quoteId: string;
-  total: Money;
-  previousTotal: Money;
-  priceChange: PriceChange;
-  cancellation?: CancellationPolicy;
-  expiresAt: string;
-}
-
-export interface CheckoutHandoff {
+export interface StayCheckout {
   checkoutUrl: string;
-  bookingReference?: string;
-  expiresAt?: string;
+  bookingReference: string | null;
+  enquiryId: string | null;
 }
-
-export type BookingStatusValue = "pending" | "booked" | "cancelled" | "failed" | "unknown";
-
-export interface BookingStatus {
-  bookingReference: string;
-  status: BookingStatusValue;
-  checkin?: string;
-  checkout?: string;
-}
-
-// ---------------------------------------------------------------------------
-// Provider (the backend side; contract pending)
-// ---------------------------------------------------------------------------
 
 export type BookingErrorCode =
   | "contract_pending"
   | "invalid_input"
-  | "quote_not_found"
-  | "quote_expired"
-  | "prebook_not_found"
-  | "prebook_expired"
   | "price_change_not_accepted"
   | "room_unavailable"
   | "session_expired"
@@ -134,46 +74,11 @@ export class BookingError extends Error {
   }
 }
 
-/** What the backend has to provide. Field shapes are ours; the real provider maps to them. */
-export interface BookingProvider {
-  readonly name: string;
-  /** Price a specific room for the stay. No supplier booking is made. */
-  quote(room: RoomRef, stay: StayRequest): Promise<Omit<Quote, "quoteId" | "expiresAt"> & { expiresAt?: string }>;
-  /** Re-confirm price and availability with the supplier (live call). */
-  prebook(quote: Quote): Promise<{ total: Money; cancellation?: CancellationPolicy; expiresAt?: string; providerRef?: string }>;
-  /** Create the checkout session/enquiry and return where the user pays. */
-  createCheckout(prebook: PreBook, quote: Quote, guest?: GuestDetails): Promise<CheckoutHandoff>;
-  getStatus(bookingReference: string): Promise<BookingStatus>;
-}
-
-const pending = (step: string) =>
-  new BookingError(
-    "contract_pending",
-    `Booking step "${step}" isn't available yet: the backend booking API contract hasn't been provided.`,
-  );
-
-export const pendingBookingProvider: BookingProvider = {
-  name: "pending",
-  async quote() {
-    throw pending("quote");
-  },
-  async prebook() {
-    throw pending("prebook");
-  },
-  async createCheckout() {
-    throw pending("checkout");
-  },
-  async getStatus() {
-    throw pending("status");
-  },
-};
-
 // ---------------------------------------------------------------------------
 // Validation
 // ---------------------------------------------------------------------------
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 function parseDate(s: string): number | null {
   if (!DATE_RE.test(s)) return null;
@@ -204,57 +109,16 @@ export function validateStay(s: StayRequest, today = new Date()): string[] {
   return errors;
 }
 
-export function validateRoomRef(r: Partial<RoomRef>): string[] {
+export function validateOffer(o: Partial<StayOffer>): string[] {
   const errors: string[] = [];
-  for (const k of ["productId", "searchId", "roomContractSetId"] as const) {
-    if (!r[k] || typeof r[k] !== "string") errors.push(`${k} is required (from the room-level live prices result)`);
-  }
-  return errors;
-}
-
-/** Problems with lead-guest details; empty when valid. */
-export function validateGuest(g: GuestDetails, today = new Date()): string[] {
-  const errors: string[] = [];
-  if (!g.firstName?.trim()) errors.push("firstName is required");
-  if (!g.lastName?.trim()) errors.push("lastName is required");
-  if (!EMAIL_RE.test(g.email ?? "")) errors.push("email must be a valid address");
-  if (!/^\+\d{1,4}$/.test(g.phoneCountryCode ?? "")) errors.push("phoneCountryCode must look like +57");
-  if (!/^\d{5,15}$/.test((g.phoneNumber ?? "").replace(/[\s-]/g, ""))) errors.push("phoneNumber must be 5-15 digits");
-  if (!/^[A-Z]{2}$/.test(g.country ?? "")) errors.push("country must be an ISO alpha-2 code, e.g. CO");
-  if (g.dateOfBirth != null) {
-    const dob = parseDate(g.dateOfBirth);
-    if (dob == null) errors.push("dateOfBirth must be a valid YYYY-MM-DD date");
-    else {
-      const adultCutoff = Date.UTC(today.getUTCFullYear() - 18, today.getUTCMonth(), today.getUTCDate());
-      if (dob > adultCutoff) errors.push("the lead guest must be 18 or older");
-    }
-  }
-  for (const [i, r] of (g.roomGuests ?? []).entries()) {
-    if (!r.firstName?.trim() || !r.lastName?.trim()) errors.push(`roomGuests[${i}] needs firstName and lastName`);
-  }
+  if (!o.productId || typeof o.productId !== "string") errors.push("offer.productId is required");
+  if (!o.roomId || typeof o.roomId !== "string") errors.push("offer.roomId is required");
+  if (!o.redisKey && !o.roomRedisKey) errors.push("offer.redisKey or offer.roomRedisKey is required");
   return errors;
 }
 
 // ---------------------------------------------------------------------------
-// PII-safe logging
-// ---------------------------------------------------------------------------
-
-const mask = (s?: string) => (s ? `${s.slice(0, 1)}***` : undefined);
-
-/** Guest details reduced to what's safe to log: initials, email domain, country. */
-export function redactGuest(g?: GuestDetails) {
-  if (!g) return undefined;
-  return {
-    name: `${mask(g.firstName)} ${mask(g.lastName)}`,
-    email: g.email?.includes("@") ? `***@${g.email.split("@")[1]}` : "***",
-    phone: "***",
-    country: g.country,
-    roomGuests: g.roomGuests?.length ?? 0,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Price changes
+// Price changes (used by the flights re-price)
 // ---------------------------------------------------------------------------
 
 export interface PriceChange {
@@ -282,110 +146,140 @@ export function comparePrices(before: Money, after: Money): PriceChange {
 }
 
 // ---------------------------------------------------------------------------
-// Flow (ordering + state), independent of the backend contract
+// Request to Book
 // ---------------------------------------------------------------------------
 
-type Log = (level: "info" | "warn" | "error", message: string, data?: any) => void;
+/** Query string the site sends for one room (product page "Reserve" button). */
+export function buildRequestToBookQuery(offer: StayOffer, stay: StayRequest): URLSearchParams {
+  const q = new URLSearchParams({
+    product_id: offer.productId,
+    checkin: stay.checkin,
+    checkout: stay.checkout,
+    guests: String(stay.adults + stay.children),
+    adults: String(stay.adults),
+    children: String(stay.children),
+    infants: String(stay.infants),
+    rooms: String(stay.rooms),
+    currency: stay.currency,
+    room_id: offer.roomId,
+  });
+  for (const age of stay.childAges) q.append("child_ages[]", String(age));
+  if (offer.recordId) q.set("record_id", offer.recordId);
+  if (offer.redisKey) q.set("redis_key", offer.redisKey);
+  if (offer.roomRedisKey) q.set("room_redis_key", offer.roomRedisKey);
+  return q;
+}
 
-const DEFAULT_QUOTE_TTL_MS = 15 * 60_000;
-const DEFAULT_PREBOOK_TTL_MS = 10 * 60_000;
-const MAX_ENTRIES = 1000;
-
-export class BookingFlow {
-  private quotes = new Map<string, Quote>();
-  private prebooks = new Map<string, PreBook>();
-
-  constructor(
-    private readonly provider: BookingProvider,
-    private readonly opts: { log?: Log; now?: () => number } = {},
-  ) {}
-
-  private now() {
-    return this.opts.now?.() ?? Date.now();
-  }
-
-  private remember<T>(map: Map<string, T>, key: string, value: T) {
-    map.set(key, value);
-    while (map.size > MAX_ENTRIES) map.delete(map.keys().next().value as string);
-  }
-
-  private expired(iso: string) {
-    return Date.parse(iso) <= this.now();
-  }
-
-  async quote(room: RoomRef, stay: StayRequest): Promise<Quote> {
-    const errors = [...validateRoomRef(room), ...validateStay(stay, new Date(this.now()))];
-    if (errors.length) throw new BookingError("invalid_input", errors.join("; "), { errors });
-    const q = await this.provider.quote(room, stay);
-    const quote: Quote = {
-      ...q,
-      quoteId: randomUUID(),
-      expiresAt: q.expiresAt ?? new Date(this.now() + DEFAULT_QUOTE_TTL_MS).toISOString(),
-    };
-    this.remember(this.quotes, quote.quoteId, quote);
-    this.opts.log?.("info", "Booking quote created", { productId: room.productId, total: quote.total });
-    return quote;
-  }
-
-  async prebook(quoteId: string): Promise<PreBook> {
-    const quote = this.quotes.get(quoteId);
-    if (!quote) throw new BookingError("quote_not_found", "Unknown quoteId; create a new quote first.");
-    if (this.expired(quote.expiresAt)) throw new BookingError("quote_expired", "The quote expired; create a new one.");
-    const p = await this.provider.prebook(quote);
-    const prebook: PreBook = {
-      prebookId: randomUUID(),
-      quoteId,
-      total: p.total,
-      previousTotal: quote.total,
-      priceChange: comparePrices(quote.total, p.total),
-      cancellation: p.cancellation ?? quote.cancellation,
-      expiresAt: p.expiresAt ?? new Date(this.now() + DEFAULT_PREBOOK_TTL_MS).toISOString(),
-    };
-    this.remember(this.prebooks, prebook.prebookId, prebook);
-    this.opts.log?.("info", "Booking pre-book confirmed", {
-      productId: quote.room.productId,
-      priceChange: prebook.priceChange.direction,
-    });
-    return prebook;
-  }
-
-  async checkout(prebookId: string, opts: { acceptPriceChange?: boolean; guest?: GuestDetails } = {}) {
-    const prebook = this.prebooks.get(prebookId);
-    if (!prebook) throw new BookingError("prebook_not_found", "Unknown prebookId; pre-book the quote first.");
-    if (this.expired(prebook.expiresAt)) {
-      throw new BookingError("prebook_expired", "The pre-book expired; pre-book the quote again.");
-    }
-    if (prebook.priceChange.requiresAcceptance && !opts.acceptPriceChange) {
-      throw new BookingError(
-        "price_change_not_accepted",
-        "The price went up since the quote. Confirm with the user, then retry with acceptPriceChange: true.",
-        { previousTotal: prebook.previousTotal, total: prebook.total, priceChange: prebook.priceChange },
-      );
-    }
-    if (opts.guest) {
-      const errors = validateGuest(opts.guest, new Date(this.now()));
-      if (errors.length) throw new BookingError("invalid_input", errors.join("; "), { errors });
-    }
-    const quote = this.quotes.get(prebook.quoteId)!;
-    const handoff = await this.provider.createCheckout(prebook, quote, opts.guest);
-    this.opts.log?.("info", "Booking checkout hand-off created", {
-      productId: quote.room.productId,
-      guest: redactGuest(opts.guest),
-    });
-    return { handoff, total: prebook.total, cancellation: prebook.cancellation };
-  }
-
-  async status(bookingReference: string): Promise<BookingStatus> {
-    if (!bookingReference?.trim()) throw new BookingError("invalid_input", "bookingReference is required");
-    return this.provider.getStatus(bookingReference.trim());
+/** Only ever hand the user a CuddlyNest https link. */
+function isCuddlyNestUrl(u: unknown): u is string {
+  if (typeof u !== "string") return false;
+  try {
+    const url = new URL(u);
+    return url.protocol === "https:" && (url.hostname === "cuddlynest.com" || url.hostname.endsWith(".cuddlynest.com"));
+  } catch {
+    return false;
   }
 }
 
-// ---------------------------------------------------------------------------
-// Active provider — the one place to switch to the backend implementation.
-// ---------------------------------------------------------------------------
+const str = (v: unknown) => (v == null || v === "" ? null : String(v));
 
-export const bookingProvider: BookingProvider = pendingBookingProvider;
+/**
+ * Maps a Request to Book response. The site redirects to `data.url` when
+ * statusCode is 200; anything else means the rate can't be booked any more
+ * (the site marks the room as "broke" and shows `message`).
+ */
+export function mapRequestToBook(body: any): StayCheckout {
+  const data = body?.data ?? {};
+  if (body?.statusCode !== 200 || !data.url) {
+    throw new BookingError(
+      "room_unavailable",
+      `This room can't be booked right now${body?.message ? `: ${body.message}` : ""}. Pick another rate or room.`,
+    );
+  }
+  if (!isCuddlyNestUrl(data.url)) {
+    throw new BookingError("provider_error", "Request to Book answered a checkout link outside cuddlynest.com");
+  }
+  return {
+    checkoutUrl: data.url,
+    bookingReference: str(data.booking_no),
+    enquiryId: str(data.enquiry_id ?? data.enId),
+  };
+}
+
+/** Bearer JWT; a 401/403 drops the cached token and retries once. */
+async function getWithJwt(url: string): Promise<{ status: number; body: any }> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let token: string;
+    try {
+      token = await getAccessToken();
+    } catch (e) {
+      if (e instanceof AuthError) throw new BookingError("provider_error", `Booking auth failed: ${e.message}`);
+      throw e;
+    }
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        headers: { Accept: "application/json", "X-Authorization": `Bearer ${token}` },
+        signal: AbortSignal.timeout(timeoutMs()),
+      });
+    } catch (e) {
+      const code = (e as any)?.name === "TimeoutError" ? "timeout" : "network";
+      throw new BookingError("provider_error", `Request to Book unreachable (${code})`);
+    }
+    if ((res.status === 401 || res.status === 403) && attempt === 0) {
+      invalidateAccessToken();
+      continue;
+    }
+    let body: any = null;
+    try {
+      body = await res.json();
+    } catch {
+      /* not JSON */
+    }
+    return { status: res.status, body };
+  }
+  throw new BookingError("provider_error", "Request to Book refused the token twice");
+}
+
+/**
+ * Creates the enquiry for one room rate and returns the checkout URL. Live
+ * supplier call (pre-book), so only on an explicit booking request.
+ */
+export async function requestToBook(
+  offer: StayOffer,
+  stay: StayRequest,
+  opts: { log?: Log; today?: Date } = {},
+): Promise<StayCheckout> {
+  const errors = [...validateOffer(offer), ...validateStay(stay, opts.today)];
+  if (errors.length) throw new BookingError("invalid_input", errors.join("; "), { errors });
+
+  const url = `${apiUrl()}/api/v1/product/request_to_book?${buildRequestToBookQuery(offer, stay)}`;
+  const started = Date.now();
+  const { status, body } = await getWithJwt(url);
+  if (status === 422) {
+    const detail = Array.isArray(body?.detail) ? body.detail.map((d: any) => `${(d?.loc ?? []).join(".")}: ${d?.msg}`) : [];
+    throw new BookingError("invalid_input", `Request to Book rejected the request${detail.length ? `: ${detail.join("; ")}` : ""}`);
+  }
+  if (status === 401 || status === 403) throw new BookingError("provider_error", `Request to Book refused the token (HTTP ${status})`);
+  if (status < 200 || status >= 300 || !body) throw new BookingError("provider_error", `Request to Book answered HTTP ${status}`);
+
+  const checkout = mapRequestToBook(body);
+  opts.log?.("info", "Stay request to book created", {
+    productId: offer.productId,
+    bookingReference: checkout.bookingReference,
+    ms: Date.now() - started,
+  });
+  return checkout;
+}
+
+/** No booking-status API exists yet (asked in CP-11612). */
+export async function getStayBookingStatus(bookingReference: string): Promise<never> {
+  if (!bookingReference?.trim()) throw new BookingError("invalid_input", "bookingReference is required");
+  throw new BookingError(
+    "contract_pending",
+    "Booking status isn't available from the assistant yet. The user gets the confirmation by email and in their CuddlyNest account.",
+  );
+}
 
 export function isBookingEnabled(): boolean {
   return process.env.CUDDLYNEST_ENABLE_BOOKING_TOOLS === "true";

@@ -68,6 +68,21 @@ export interface RoomOffer {
   price_breakdown: PriceBreakdown;
   cancellation_policy: CancellationPolicy;
   room_filters: string[];
+  /** One per bookable rate (meal plan / policy), with the ids Request to Book takes. */
+  booking_options?: BookingOption[];
+}
+
+export interface BookingOption {
+  product_id: string;
+  room_id: string;
+  record_id?: number | string;
+  redis_key?: string;
+  room_redis_key?: string;
+  extra_type?: string;
+  extra_title?: string;
+  group_title?: string;
+  cancellation_policy_type?: string;
+  unit_price?: number;
 }
 
 export interface ListingSearchResult {
@@ -163,6 +178,32 @@ function extractRoomsFromDom(): { fromPriceText: string | null; rooms: RoomOffer
     return Object.keys(el).find((k) => k.startsWith("__reactFiber"));
   }
 
+  // Each room group (policy) lists its rates under `extras` (meal plans); the site
+  // sends one of those to Request to Book. Groups without extras are the rate.
+  function bookingOptions(groups: any): BookingOption[] {
+    const list = Array.isArray(groups) ? groups : groups && typeof groups === "object" ? Object.values(groups) : [];
+    const out: BookingOption[] = [];
+    for (const g of list as any[]) {
+      const rates = Array.isArray(g?.extras) && g.extras.length ? g.extras : [g];
+      for (const r of rates) {
+        if (!r?.id || !r?.product_id) continue;
+        out.push({
+          product_id: String(r.product_id),
+          room_id: String(r.id),
+          record_id: r.record_id ?? g.record_id,
+          redis_key: r.redis_key ?? g.redis_key,
+          room_redis_key: r.room_redis_key ?? g.room_redis_key,
+          extra_type: r.extra_type,
+          extra_title: r.extra_title,
+          group_title: g.group_title,
+          cancellation_policy_type: g.cancellation_policy_type,
+          unit_price: r.unit_price,
+        });
+      }
+    }
+    return out;
+  }
+
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   const priceLineRe = /^[A-Z]{2,4}\$[\d,]+(\.\d+)?$/; // e.g. COL$742,637 / USD$232
 
@@ -199,6 +240,7 @@ function extractRoomsFromDom(): { fromPriceText: string | null; rooms: RoomOffer
             price_breakdown: p.price_breakdown,
             cancellation_policy: p.cancellation_policy,
             room_filters: p.room_filters,
+            booking_options: bookingOptions(p.roomGroups),
           });
         }
         break;
