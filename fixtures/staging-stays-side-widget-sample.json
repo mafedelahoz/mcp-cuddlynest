@@ -1,0 +1,215 @@
+{
+ "statusCode": 200,
+ "message": "Successfully got side widget details for checkout.",
+ "data": {
+  "title": "Maxi Hotel & Spa",
+  "checkin": "12 Jan 2027",
+  "checkout": "14 Jan 2027",
+  "no_of_nights": "2",
+  "rooms": "1",
+  "number_of_guests": "2",
+  "bill_info": {
+   "nights": 2,
+   "price_per_night": "room",
+   "total_nights_price": 12,
+   "tooltip": "",
+   "total": {
+    "name": "Total",
+    "amount": "$29.71",
+    "tooltip": ""
+   },
+   "discount_details": {
+    "name": "Discounts",
+    "tooltip": "Pre-applied $1.03<br/><br/>Discounts apply to tariffs and service fees only. Taxes, additional services and amenities won\u2019t be discounted.",
+    "amount": "-$1.03"
+   },
+   "details": [
+    {
+     "name": "1 room x 2 nights",
+     "amount": "$23.96",
+     "tooltip": "",
+     "sub_text": "$11.98 per night"
+    },
+    {
+     "name": "Taxes and fees",
+     "amount": "$5.04",
+     "tooltip": "",
+     "sub_text": ""
+    },
+    {
+     "name": "Affiliate Service Charge",
+     "amount": "$1.74",
+     "tooltip": "",
+     "sub_text": ""
+    },
+    {
+     "name": "Discounts",
+     "tooltip": "Pre-applied $1.03<br/><br/>Discounts apply to tariffs and service fees only. Taxes, additional services and amenities won\u2019t be discounted.",
+     "amount": "-$1.03"
+    }
+   ],
+   "individual_details": [
+    [
+     {
+      "name": "1 room x 2 nights",
+      "amount": "$23.96",
+      "tooltip": "",
+      "sub_text": "$11.98 per night"
+     },
+     {
+      "name": "Taxes and fees",
+      "amount": "$5.04",
+      "tooltip": "",
+      "sub_text": ""
+     },
+     {
+      "name": "Affiliate Service Charge",
+      "amount": "$1.74",
+      "tooltip": "",
+      "sub_text": ""
+     }
+    ]
+   ],
+   "approx_amount": 30,
+   "guest_currency_symbol": "$",
+   "guest_currency_id": 1,
+   "amount_pc": 29.71,
+   "base_currency": "USD",
+   "base_price": 29.71,
+   "pay_later_collateral_amount": 0,
+   "pay_later_remaining_amount_pc": 0,
+   "min_crypto_amount": 0,
+   "crypto": {
+    "currencies": [
+     {
+      "currency_type": "USDC",
+      "currency": "USDC",
+      "network": "ETH",
+      "icon": "https://nowpayments.io/images/coins/usdc.svg"
+     },
+     {
+      "currency_type": "DAI",
+      "currency": "DAI",
+      "network": "ETH",
+      "icon": "https://nowpayments.io/images/coins/dai.svg"
+     },
+     {
+      "currency_type": "USDTBSC",
+      "currency": "USDT",
+      "network": "BSC",
+      "icon": "https://nowpayments.io/images/coins/usdtbsc.svg"
+     },
+     {
+      "currency_type": "USDTERC20",
+      "currency": "USDT",
+      "network": "ETH",
+      "icon": "https://nowpayments.io/images/coins/usdterc20.svg"
+     },
+     {
+      "currency_type": "USDTSOL",
+      "currency": "USDT",
+      "network": "SOL",
+      "icon": "https://nowpayments.io/images/coins/usdtsol.svg"
+     },
+     {
+      "currency_type": "USDTTRC20",
+      "currency": "USDT",
+      "network": "TRX",
+      "icon": "https://nowpayments.io/images/coins/usdttrc20.svg"
+     },
+     {
+      "currency_type": "BUSDBSC",
+      "currency": "BUSD",
+      "network": "BSC",
+      "icon": "https://nowpayments.io/images/coins/busdbsc.svg"
+     }
+    ],
+    "currencies_v2": [
+     {
+      "currency": "USDC",
+      "networks": [
+       "ETH"
+      ]
+     },
+     {
+      "currency": "DAI",
+      "networks": [
+       "ETH"
+      ]
+     },
+     {
+      "currency": "USDT",
+      "networks": [
+       "BSC",
+       "ETH",
+       "SOL",
+       "TRX"
+      ]
+     },
+     {
+      "currency": "BUSD",
+      "networks": [
+       "BSC"
+      ]
+     }
+    ]
+   },
+   "room_policies": ""
+  },
+  "cancellation_policy": {
+   "type": "Free Cancellation",
+   "policies": [
+    {
+     "text": "Cancel before 10 January 2027 at 6:00 AM to receive a 100% refund."
+    },
+    {
+     "text": "Cancellations made on or after 10 January 2027 at 6:00 AM are non-refundable."
+    },
+    {
+     "text": "The cancellation deadline is based on the property's local time."
+    }
+   ],
+   "first_refund_date": "Jan 10, 2027",
+   "cp_timeline": [
+    {
+     "type": "Free Cancellation",
+     "date": "2027-01-10",
+     "time": "6:00 AM",
+     "amount": 29.71,
+     "currency": "USD",
+     "percentage": 100,
+     "timezone_text": "The cancellation deadline is based on the property's local time."
+    },
+    {
+     "type": "Non-Refundable",
+     "date": "2027-01-10",
+     "time": "6:00 AM",
+     "currency": "USD",
+     "percentage": 0,
+     "timezone_text": "The cancellation deadline is based on the property's local time."
+    }
+   ]
+  },
+  "first_cancellation_date_time": {
+   "date": "Jan 10, 2027",
+   "time": "6:00 AM"
+  },
+  "payment_options": {
+   "now": {
+    "date": "Nov 20, 2026",
+    "time": "12:30 PM",
+    "refund": 100
+   },
+   "later": {
+    "date": "Jan 08, 2027",
+    "time": "6:00 AM"
+   }
+  },
+  "debug": {
+   "supplier_total": 999999.99
+  },
+  "prebook_res": {
+   "book_hash": "simulated"
+  }
+ }
+}

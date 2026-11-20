@@ -202,8 +202,9 @@ npm run watch
 - `be-api-provider.ts` — live stays availability (`source: "live"`)
 - `attractions-provider.ts`, `flights-provider.ts` — live attractions and flights search
 - `booking.ts` — stays booking: a room rate → Request to Book → CuddlyNest
-  checkout link, where the user sees the final price and pays. Hidden unless
-  `CUDDLYNEST_ENABLE_BOOKING_TOOLS=true`; booking status has no API yet
+  checkout link with the final price and cancellation policy; the user pays on
+  the checkout page. Booking status by enquiry id + booking number. Hidden unless
+  `CUDDLYNEST_ENABLE_BOOKING_TOOLS=true`
 - `attractions-booking.ts`, `flights-booking.ts` — attraction options →
   live availability → checkout, and flight live price → pending booking, behind
   the same flag. The payment hand-off is pending, so both stop before payment

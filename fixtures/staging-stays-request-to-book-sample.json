@@ -1,0 +1,2503 @@
+{
+ "statusCode": 200,
+ "message": "Successfully got rental enquiry data.",
+ "data": {
+  "url": "booking-payment/60299?h=0000simulatedhash0000",
+  "enId": 60299,
+  "side_widget_data": {
+   "checkin": "2027-01-12",
+   "checkout": "2027-01-14",
+   "no_of_nights": "2",
+   "title": "Maxi Hotel & Spa"
+  }
+ },
+ "side_widget_data": {
+  "checkin": "2027-01-12",
+  "checkout": "2027-01-14",
+  "checkin_time": "Check-in: after 2:00 PM",
+  "checkout_time": "Check-out: before 12:00 PM",
+  "no_of_nights": "2",
+  "rooms": "1",
+  "number_of_guests": "2",
+  "no_of_children": "0",
+  "no_of_infants": "0",
+  "title": "Maxi Hotel & Spa",
+  "room_type": "Hotel",
+  "city": "Badung",
+  "display_address": {
+   "city": "Badung",
+   "state": "Bali",
+   "country": "Indonesia"
+  },
+  "bill_info": {},
+  "product_image": [
+   "https://img.cuddlynest.com/images/listings/2022/10/6/7089393/10/2ssvstnrlc5kp8xylg7youo2x69ebv.jpg"
+  ]
+ },
+ "guest_details_data": {
+  "type": "",
+  "partner_id": 29,
+  "details": [
+   {
+    "heading": "Details of person booking",
+    "import_source_post_data": false,
+    "fields": [
+     {
+      "name": "first_name",
+      "type": "text",
+      "placeholder": "First Name",
+      "text": "",
+      "value": null,
+      "is_required": true,
+      "label": "First Name",
+      "placeholder_v2": "First name",
+      "required_message": "Please provide your First Name",
+      "invalid_message": "First Name is not correct"
+     },
+     {
+      "name": "last_name",
+      "type": "text",
+      "placeholder": "Last Name",
+      "text": "",
+      "value": null,
+      "is_required": true,
+      "label": "Last Name",
+      "placeholder_v2": "Last name",
+      "required_message": "Please provide your Last Name",
+      "invalid_message": "Last Name is not correct"
+     },
+     {
+      "name": "email",
+      "type": "email",
+      "placeholder": "Email",
+      "text": "",
+      "value": null,
+      "is_required": true,
+      "label": "Email",
+      "placeholder_v2": "Email address",
+      "required_message": "Please provide your Email",
+      "invalid_message": "Email is not correct"
+     },
+     {
+      "name": "phone_number",
+      "type": "tel",
+      "placeholder": "Phone Number",
+      "text": "",
+      "value": "",
+      "is_required": false,
+      "label": "Phone Number",
+      "placeholder_v2": "Phone number",
+      "required_message": "Please provide your Phone Number",
+      "invalid_message": "Phone Number is not correct",
+      "options": [
+       {
+        "calling_code": "+376",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ad.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+971",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ae.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+93 ",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/af.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+268",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ag.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+355",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/al.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+374",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/am.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+244",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ao.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+672",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/aq.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+54 ",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ar.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+684",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/as.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+43",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/at.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+61",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/au.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+297",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/aw.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+358",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ax.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+994",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/az.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+387",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ba.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+246",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/bb.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+880",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/bd.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+32",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/be.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+226",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/bf.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+359",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/bg.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+973",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/bh.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+257",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/bi.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+229 ",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/bj.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+1441",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/bm.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+673",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/bn.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+591",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/bo.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+599",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/bq.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+55",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/br.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+242",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/bs.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+975",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/bt.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+47\t",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/bv.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+267",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/bw.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+375",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/by.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+501",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/bz.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+1",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ca.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+243",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/cd.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+236",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/cf.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+ 242",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/cg.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+41",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ch.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+225",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ci.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+56",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/cl.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+237",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/cm.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+86",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/cn.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+57",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/co.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+506",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/cr.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+53",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/cu.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+238",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/cv.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+357",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/cy.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+420",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/cz.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+49",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/de.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+253",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/dj.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+45",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/dk.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+1 767",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/dm.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+1",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/do.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+213",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/dz.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+593",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ec.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+372",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ee.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+20",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/eg.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+212",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/eh.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+291",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/er.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+34",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/es.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+251",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/et.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+358",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/fi.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+679",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/fj.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+691",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/fm.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+298",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/fo.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+33",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/fr.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+241 ",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ga.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+44",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/gb.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+1 473",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/gd.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+995",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ge.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+594",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/gf.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+44",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/gg.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+233",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/gh.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+299",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/gl.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+220",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/gm.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+224 ",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/gn.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+590",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/gp.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+240",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/gq.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+30",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/gr.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+502",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/gt.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+1 671",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/gu.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+245",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/gw.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+592",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/gy.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+852",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/hk.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+504",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/hn.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+385",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/hr.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+509",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ht.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+36",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/hu.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+62",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/id.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+353",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ie.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+972 ",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/il.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+44",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/im.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+91",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/in.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+246",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/io.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+964",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/iq.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+98",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ir.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+354",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/is.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+39",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/it.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+44 ",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/je.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+1 876",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/jm.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+962",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/jo.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+81 ",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/jp.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+254",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ke.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+996",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/kg.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+855",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/kh.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+686",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ki.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+269",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/km.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+1 869",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/kn.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+850",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/kp.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+82",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/kr.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+965",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/kw.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+7",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/kz.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+856",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/la.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+961",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/lb.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+1 758",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/lc.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+423",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/li.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+94",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/lk.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+231",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/lr.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+266",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ls.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+370",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/lt.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+352",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/lu.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+371",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/lv.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+ 218",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ly.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+212",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ma.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+377",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/mc.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+373",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/md.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+382",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/me.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+261",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/mg.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+692",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/mh.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+389",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/mk.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+223",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ml.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+95",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/mm.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+976",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/mn.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+853",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/mo.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+1 670",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/mp.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+596",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/mq.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+222",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/mr.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+1664",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ms.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+230",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/mu.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+960",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/mv.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+265",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/mw.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+52",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/mx.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+60",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/my.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+258",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/mz.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+264",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/na.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+687",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/nc.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+227",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ne.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+234",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ng.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+505",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ni.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+31",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/nl.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+47",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/no.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+977",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/np.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+674",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/nr.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+64",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/nz.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+968",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/om.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+507",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/pa.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+51",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/pe.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+689",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/pf.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+675",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/pg.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+63",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ph.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+92",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/pk.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+48 ",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/pl.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+508",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/pm.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+787",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/pr.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+970",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ps.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+351",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/pt.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+680",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/pw.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+595",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/py.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+974",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/qa.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+262",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/re.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+40",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ro.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+381",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/rs.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+7",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ru.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+250",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/rw.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+966",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/sa.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+677",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/sb.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+248 ",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/sc.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+249",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/sd.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+46 ",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/se.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+65",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/sg.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+290",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/sh.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+386",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/si.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+47",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/sj.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+421",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/sk.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+232",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/sl.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+378",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/sm.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+221",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/sn.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+252",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/so.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+597",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/sr.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+211",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ss.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+239",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/st.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+503",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/sv.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+963",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/sy.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+268",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/sz.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+235",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/td.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+262",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/tf.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+228",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/tg.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+66",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/th.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+992",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/tj.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+690",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/tk.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+670",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/tl.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+993",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/tm.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+216",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/tn.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+676",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/to.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+90",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/tr.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+868",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/tt.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+688",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/tv.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+886",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/tw.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+255",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/tz.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+380",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ua.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+256",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ug.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+1",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/um.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+1",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/us.png",
+        "selected": "selected"
+       },
+       {
+        "calling_code": "+598",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/uy.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+998",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/uz.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+1 784 ",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/vc.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+58",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ve.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+1 340",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/vi.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+84",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/vn.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+678",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/vu.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+681 ",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/wf.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+685",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ws.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+381",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/xk.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+967",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ye.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+262",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/yt.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+27",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/za.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+260",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/zm.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+263",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/zw.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+1",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ai.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+1",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ky.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+61",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/cx.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+891",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/cc.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+682",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/ck.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+599",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/cw.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+350",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/gi.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+672",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/hm.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+356",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/mt.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+599",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/an.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+683",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/nu.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+672",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/nf.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+64",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/pn.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+590",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/bl.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+590",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/mf.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+590",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/sx.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+500",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/gs.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+1",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/tc.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+1",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/vg.png",
+        "selected": ""
+       },
+       {
+        "calling_code": "+1",
+        "flag": "https://img.cuddlynest.com/images/assets/flags/zz.png",
+        "selected": ""
+       }
+      ]
+     },
+     {
+      "name": "dob",
+      "type": "date",
+      "placeholder": "Birth Date",
+      "text": "",
+      "value": "",
+      "is_required": false,
+      "label": "Date of birth",
+      "placeholder_v2": "MM / DD / YY",
+      "required_message": "Please provide your Date of birth",
+      "invalid_message": "Date of birth is not correct"
+     },
+     {
+      "name": "country",
+      "type": "dropdown",
+      "placeholder": "Choose country",
+      "text": "",
+      "options": [
+       {
+        "id": "1",
+        "name": "Andorra"
+       },
+       {
+        "id": "2",
+        "name": "United Arab Emirates"
+       },
+       {
+        "id": "3",
+        "name": "Afghanistan"
+       },
+       {
+        "id": "4",
+        "name": "Antigua And Barbuda"
+       },
+       {
+        "id": "5",
+        "name": "Albania"
+       },
+       {
+        "id": "6",
+        "name": "Armenia"
+       },
+       {
+        "id": "7",
+        "name": "Angola"
+       },
+       {
+        "id": "8",
+        "name": "Antarctica"
+       },
+       {
+        "id": "9",
+        "name": "Argentina"
+       },
+       {
+        "id": "10",
+        "name": "American Samoa"
+       },
+       {
+        "id": "11",
+        "name": "Austria"
+       },
+       {
+        "id": "12",
+        "name": "Australia"
+       },
+       {
+        "id": "13",
+        "name": "Aruba"
+       },
+       {
+        "id": "14",
+        "name": "Aland Islands"
+       },
+       {
+        "id": "15",
+        "name": "Azerbaijan"
+       },
+       {
+        "id": "16",
+        "name": "Bosnia and Herzegovina"
+       },
+       {
+        "id": "17",
+        "name": "Barbados"
+       },
+       {
+        "id": "18",
+        "name": "Bangladesh"
+       },
+       {
+        "id": "19",
+        "name": "Belgium"
+       },
+       {
+        "id": "20",
+        "name": "Burkina Faso"
+       },
+       {
+        "id": "21",
+        "name": "Bulgaria"
+       },
+       {
+        "id": "22",
+        "name": "Bahrain"
+       },
+       {
+        "id": "23",
+        "name": "Burundi"
+       },
+       {
+        "id": "24",
+        "name": "Benin"
+       },
+       {
+        "id": "25",
+        "name": "Bermuda"
+       },
+       {
+        "id": "26",
+        "name": "Brunei"
+       },
+       {
+        "id": "27",
+        "name": "Bolivia"
+       },
+       {
+        "id": "28",
+        "name": "Bonaire, Saint Eustatius And Saba "
+       },
+       {
+        "id": "29",
+        "name": "Brazil"
+       },
+       {
+        "id": "30",
+        "name": "Bahamas"
+       },
+       {
+        "id": "31",
+        "name": "Bhutan"
+       },
+       {
+        "id": "32",
+        "name": "Bouvet Island"
+       },
+       {
+        "id": "33",
+        "name": "Botswana"
+       },
+       {
+        "id": "34",
+        "name": "Belarus"
+       },
+       {
+        "id": "35",
+        "name": "Belize"
+       },
+       {
+        "id": "36",
+        "name": "Canada"
+       },
+       {
+        "id": "37",
+        "name": "Democratic Republic Of The Congo"
+       },
+       {
+        "id": "38",
+        "name": "Central African Republic"
+       },
+       {
+        "id": "39",
+        "name": "Republic Of The Congo"
+       },
+       {
+        "id": "40",
+        "name": "Switzerland"
+       },
+       {
+        "id": "41",
+        "name": "Ivory Coast"
+       },
+       {
+        "id": "42",
+        "name": "Chile"
+       },
+       {
+        "id": "43",
+        "name": "Cameroon"
+       },
+       {
+        "id": "44",
+        "name": "China"
+       },
+       {
+        "id": "45",
+        "name": "Colombia"
+       },
+       {
+        "id": "46",
+        "name": "Costa Rica"
+       },
+       {
+        "id": "47",
+        "name": "Cuba"
+       },
+       {
+        "id": "48",
+        "name": "Cape Verde"
+       },
+       {
+        "id": "49",
+        "name": "Cyprus"
+       },
+       {
+        "id": "50",
+        "name": "Czech Republic"
+       },
+       {
+        "id": "51",
+        "name": "Germany"
+       },
+       {
+        "id": "52",
+        "name": "Djibouti"
+       },
+       {
+        "id": "53",
+        "name": "Denmark"
+       },
+       {
+        "id": "54",
+        "name": "Dominica"
+       },
+       {
+        "id": "55",
+        "name": "Dominican Republic"
+       },
+       {
+        "id": "56",
+        "name": "Algeria"
+       },
+       {
+        "id": "57",
+        "name": "Ecuador"
+       },
+       {
+        "id": "58",
+        "name": "Estonia"
+       },
+       {
+        "id": "59",
+        "name": "Egypt"
+       },
+       {
+        "id": "60",
+        "name": "Western Sahara"
+       },
+       {
+        "id": "61",
+        "name": "Eritrea"
+       },
+       {
+        "id": "62",
+        "name": "Spain"
+       },
+       {
+        "id": "63",
+        "name": "Ethiopia"
+       },
+       {
+        "id": "64",
+        "name": "Finland"
+       },
+       {
+        "id": "65",
+        "name": "Fiji"
+       },
+       {
+        "id": "66",
+        "name": "Micronesia"
+       },
+       {
+        "id": "67",
+        "name": "Faroe Islands"
+       },
+       {
+        "id": "68",
+        "name": "France"
+       },
+       {
+        "id": "69",
+        "name": "Gabon"
+       },
+       {
+        "id": "70",
+        "name": "United Kingdom"
+       },
+       {
+        "id": "71",
+        "name": "Grenada"
+       },
+       {
+        "id": "72",
+        "name": "Georgia"
+       },
+       {
+        "id": "73",
+        "name": "French Guiana"
+       },
+       {
+        "id": "74",
+        "name": "Guernsey"
+       },
+       {
+        "id": "75",
+        "name": "Ghana"
+       },
+       {
+        "id": "76",
+        "name": "Greenland"
+       },
+       {
+        "id": "77",
+        "name": "Gambia"
+       },
+       {
+        "id": "78",
+        "name": "Guinea"
+       },
+       {
+        "id": "79",
+        "name": "Guadeloupe"
+       },
+       {
+        "id": "80",
+        "name": "Equatorial Guinea"
+       },
+       {
+        "id": "81",
+        "name": "Greece"
+       },
+       {
+        "id": "82",
+        "name": "Guatemala"
+       },
+       {
+        "id": "83",
+        "name": "Guam"
+       },
+       {
+        "id": "84",
+        "name": "Guinea-Bissau"
+       },
+       {
+        "id": "85",
+        "name": "Guyana"
+       },
+       {
+        "id": "86",
+        "name": "Hong Kong"
+       },
+       {
+        "id": "87",
+        "name": "Honduras"
+       },
+       {
+        "id": "88",
+        "name": "Croatia"
+       },
+       {
+        "id": "89",
+        "name": "Haiti"
+       },
+       {
+        "id": "90",
+        "name": "Hungary"
+       },
+       {
+        "id": "91",
+        "name": "Indonesia"
+       },
+       {
+        "id": "92",
+        "name": "Ireland"
+       },
+       {
+        "id": "93",
+        "name": "Israel"
+       },
+       {
+        "id": "94",
+        "name": "Isle Of Man"
+       },
+       {
+        "id": "95",
+        "name": "India"
+       },
+       {
+        "id": "96",
+        "name": "British Indian Ocean Territory"
+       },
+       {
+        "id": "97",
+        "name": "Iraq"
+       },
+       {
+        "id": "98",
+        "name": "Iran"
+       },
+       {
+        "id": "99",
+        "name": "Iceland"
+       },
+       {
+        "id": "100",
+        "name": "Italy"
+       },
+       {
+        "id": "101",
+        "name": "Jersey"
+       },
+       {
+        "id": "102",
+        "name": "Jamaica"
+       },
+       {
+        "id": "103",
+        "name": "Jordan"
+       },
+       {
+        "id": "104",
+        "name": "Japan"
+       },
+       {
+        "id": "105",
+        "name": "Kenya"
+       },
+       {
+        "id": "106",
+        "name": "Kyrgyzstan"
+       },
+       {
+        "id": "107",
+        "name": "Cambodia"
+       },
+       {
+        "id": "108",
+        "name": "Kiribati"
+       },
+       {
+        "id": "109",
+        "name": "Comoros"
+       },
+       {
+        "id": "110",
+        "name": "Saint Kitts And Nevis"
+       },
+       {
+        "id": "111",
+        "name": "North Korea"
+       },
+       {
+        "id": "112",
+        "name": "South Korea"
+       },
+       {
+        "id": "113",
+        "name": "Kuwait"
+       },
+       {
+        "id": "114",
+        "name": "Kazakhstan"
+       },
+       {
+        "id": "115",
+        "name": "Laos"
+       },
+       {
+        "id": "116",
+        "name": "Lebanon"
+       },
+       {
+        "id": "117",
+        "name": "Saint Lucia"
+       },
+       {
+        "id": "118",
+        "name": "Liechtenstein"
+       },
+       {
+        "id": "119",
+        "name": "Sri Lanka"
+       },
+       {
+        "id": "120",
+        "name": "Liberia"
+       },
+       {
+        "id": "121",
+        "name": "Lesotho"
+       },
+       {
+        "id": "122",
+        "name": "Lithuania"
+       },
+       {
+        "id": "123",
+        "name": "Luxembourg"
+       },
+       {
+        "id": "124",
+        "name": "Latvia"
+       },
+       {
+        "id": "125",
+        "name": "Libya"
+       },
+       {
+        "id": "126",
+        "name": "Morocco"
+       },
+       {
+        "id": "127",
+        "name": "Monaco"
+       },
+       {
+        "id": "128",
+        "name": "Moldova"
+       },
+       {
+        "id": "129",
+        "name": "Montenegro"
+       },
+       {
+        "id": "130",
+        "name": "Madagascar"
+       },
+       {
+        "id": "131",
+        "name": "Marshall Islands"
+       },
+       {
+        "id": "132",
+        "name": "Macedonia"
+       },
+       {
+        "id": "133",
+        "name": "Mali"
+       },
+       {
+        "id": "134",
+        "name": "Myanmar"
+       },
+       {
+        "id": "135",
+        "name": "Mongolia"
+       },
+       {
+        "id": "136",
+        "name": "Macao"
+       },
+       {
+        "id": "137",
+        "name": "Northern Mariana Islands"
+       },
+       {
+        "id": "138",
+        "name": "Martinique"
+       },
+       {
+        "id": "139",
+        "name": "Mauritania"
+       },
+       {
+        "id": "140",
+        "name": "Montserrat"
+       },
+       {
+        "id": "141",
+        "name": "Mauritius"
+       },
+       {
+        "id": "142",
+        "name": "Maldives"
+       },
+       {
+        "id": "143",
+        "name": "Malawi"
+       },
+       {
+        "id": "144",
+        "name": "Mexico"
+       },
+       {
+        "id": "145",
+        "name": "Malaysia"
+       },
+       {
+        "id": "146",
+        "name": "Mozambique"
+       },
+       {
+        "id": "147",
+        "name": "Namibia"
+       },
+       {
+        "id": "148",
+        "name": "New Caledonia"
+       },
+       {
+        "id": "149",
+        "name": "Niger"
+       },
+       {
+        "id": "150",
+        "name": "Nigeria"
+       },
+       {
+        "id": "151",
+        "name": "Nicaragua"
+       },
+       {
+        "id": "152",
+        "name": "Netherlands"
+       },
+       {
+        "id": "153",
+        "name": "Norway"
+       },
+       {
+        "id": "154",
+        "name": "Nepal"
+       },
+       {
+        "id": "155",
+        "name": "Nauru"
+       },
+       {
+        "id": "156",
+        "name": "New Zealand"
+       },
+       {
+        "id": "157",
+        "name": "Oman"
+       },
+       {
+        "id": "158",
+        "name": "Panama"
+       },
+       {
+        "id": "159",
+        "name": "Peru"
+       },
+       {
+        "id": "160",
+        "name": "French Polynesia"
+       },
+       {
+        "id": "161",
+        "name": "Papua New Guinea"
+       },
+       {
+        "id": "162",
+        "name": "Philippines"
+       },
+       {
+        "id": "163",
+        "name": "Pakistan"
+       },
+       {
+        "id": "164",
+        "name": "Poland"
+       },
+       {
+        "id": "165",
+        "name": "Saint Pierre And Miquelon"
+       },
+       {
+        "id": "166",
+        "name": "Puerto Rico"
+       },
+       {
+        "id": "167",
+        "name": "Palestinian Territory"
+       },
+       {
+        "id": "168",
+        "name": "Portugal"
+       },
+       {
+        "id": "169",
+        "name": "Palau"
+       },
+       {
+        "id": "170",
+        "name": "Paraguay"
+       },
+       {
+        "id": "171",
+        "name": "Qatar"
+       },
+       {
+        "id": "172",
+        "name": "Reunion"
+       },
+       {
+        "id": "173",
+        "name": "Romania"
+       },
+       {
+        "id": "174",
+        "name": "Serbia"
+       },
+       {
+        "id": "175",
+        "name": "Russia"
+       },
+       {
+        "id": "176",
+        "name": "Rwanda"
+       },
+       {
+        "id": "177",
+        "name": "Saudi Arabia"
+       },
+       {
+        "id": "178",
+        "name": "Solomon Islands"
+       },
+       {
+        "id": "179",
+        "name": "Seychelles"
+       },
+       {
+        "id": "180",
+        "name": "Sudan"
+       },
+       {
+        "id": "181",
+        "name": "Sweden"
+       },
+       {
+        "id": "182",
+        "name": "Singapore"
+       },
+       {
+        "id": "183",
+        "name": "Saint Helena"
+       },
+       {
+        "id": "184",
+        "name": "Slovenia"
+       },
+       {
+        "id": "185",
+        "name": "Svalbard And Jan Mayen"
+       },
+       {
+        "id": "186",
+        "name": "Slovakia"
+       },
+       {
+        "id": "187",
+        "name": "Sierra Leone"
+       },
+       {
+        "id": "188",
+        "name": "San Marino"
+       },
+       {
+        "id": "189",
+        "name": "Senegal"
+       },
+       {
+        "id": "190",
+        "name": "Somalia"
+       },
+       {
+        "id": "191",
+        "name": "Suriname"
+       },
+       {
+        "id": "192",
+        "name": "South Sudan"
+       },
+       {
+        "id": "193",
+        "name": "Sao Tome And Principe"
+       },
+       {
+        "id": "194",
+        "name": "El Salvador"
+       },
+       {
+        "id": "195",
+        "name": "Syria"
+       },
+       {
+        "id": "196",
+        "name": "Swaziland"
+       },
+       {
+        "id": "197",
+        "name": "Chad"
+       },
+       {
+        "id": "198",
+        "name": "French Southern Territories"
+       },
+       {
+        "id": "199",
+        "name": "Togo"
+       },
+       {
+        "id": "200",
+        "name": "Thailand"
+       },
+       {
+        "id": "201",
+        "name": "Tajikistan"
+       },
+       {
+        "id": "202",
+        "name": "Tokelau"
+       },
+       {
+        "id": "203",
+        "name": "East Timor"
+       },
+       {
+        "id": "204",
+        "name": "Turkmenistan"
+       },
+       {
+        "id": "205",
+        "name": "Tunisia"
+       },
+       {
+        "id": "206",
+        "name": "Tonga"
+       },
+       {
+        "id": "207",
+        "name": "Turkey"
+       },
+       {
+        "id": "208",
+        "name": "Trinidad And Tobago"
+       },
+       {
+        "id": "209",
+        "name": "Tuvalu"
+       },
+       {
+        "id": "210",
+        "name": "Taiwan"
+       },
+       {
+        "id": "211",
+        "name": "Tanzania"
+       },
+       {
+        "id": "212",
+        "name": "Ukraine"
+       },
+       {
+        "id": "213",
+        "name": "Uganda"
+       },
+       {
+        "id": "214",
+        "name": "United States Minor Outlying Islands"
+       },
+       {
+        "id": "215",
+        "name": "United States"
+       },
+       {
+        "id": "216",
+        "name": "Uruguay"
+       },
+       {
+        "id": "217",
+        "name": "Uzbekistan"
+       },
+       {
+        "id": "218",
+        "name": "Saint Vincent And The Grenadines"
+       },
+       {
+        "id": "219",
+        "name": "Venezuela"
+       },
+       {
+        "id": "220",
+        "name": "U.S. Virgin Islands"
+       },
+       {
+        "id": "221",
+        "name": "Vietnam"
+       },
+       {
+        "id": "222",
+        "name": "Vanuatu"
+       },
+       {
+        "id": "223",
+        "name": "Wallis And Futuna"
+       },
+       {
+        "id": "224",
+        "name": "Samoa"
+       },
+       {
+        "id": "225",
+        "name": "Kosovo"
+       },
+       {
+        "id": "226",
+        "name": "Yemen"
+       },
+       {
+        "id": "227",
+        "name": "Mayotte"
+       },
+       {
+        "id": "228",
+        "name": "South Africa"
+       },
+       {
+        "id": "229",
+        "name": "Zambia"
+       },
+       {
+        "id": "230",
+        "name": "Zimbabwe"
+       },
+       {
+        "id": "231",
+        "name": "Anguilla"
+       },
+       {
+        "id": "232",
+        "name": "Cayman Islands"
+       },
+       {
+        "id": "233",
+        "name": "Christmas Island"
+       },
+       {
+        "id": "234",
+        "name": "Cocos (Keeling) Islands"
+       },
+       {
+        "id": "235",
+        "name": "Cook Islands"
+       },
+       {
+        "id": "236",
+        "name": "Cura\u00e7ao"
+       },
+       {
+        "id": "237",
+        "name": "Gibraltar"
+       },
+       {
+        "id": "238",
+        "name": "Heard and McDonald Islands"
+       },
+       {
+        "id": "239",
+        "name": "Malta"
+       },
+       {
+        "id": "240",
+        "name": "Netherlands Antilles"
+       },
+       {
+        "id": "241",
+        "name": "Niue"
+       },
+       {
+        "id": "242",
+        "name": "Norfolk Island"
+       },
+       {
+        "id": "243",
+        "name": "Pitcairn"
+       },
+       {
+        "id": "244",
+        "name": "Saint Barth\u00e9lemy"
+       },
+       {
+        "id": "245",
+        "name": "Saint Martin (French part)"
+       },
+       {
+        "id": "246",
+        "name": "Sint Maarten (Dutch part)"
+       },
+       {
+        "id": "247",
+        "name": "South Georgia and South Sandwich Islands"
+       },
+       {
+        "id": "248",
+        "name": "Turks and Caicos Islands"
+       },
+       {
+        "id": "249",
+        "name": "Virgin Islands, British"
+       },
+       {
+        "id": "250",
+        "name": "Happytravel Country"
+       }
+      ],
+      "value": "215",
+      "is_required": false,
+      "label": "Country of Residence",
+      "placeholder_v2": "Country",
+      "required_message": "Please provide your Country",
+      "invalid_message": "Country is not correct"
+     }
+    ]
+   },
+   {
+    "heading": "Guest details",
+    "fields": [],
+    "sub_section": [
+     {
+      "heading": "Adult 1",
+      "fields": [
+       {
+        "name": "import_source_full_name_1",
+        "type": "text",
+        "placeholder": "Full Name",
+        "text": "",
+        "value": "",
+        "is_required": true,
+        "label": "Full Name",
+        "placeholder_v2": "First name",
+        "required_message": "Please provide your Full Name",
+        "invalid_message": "Full Name is not correct"
+       },
+       {
+        "name": "import_source_email_1",
+        "type": "email",
+        "placeholder": "Email",
+        "text": "",
+        "value": "",
+        "is_required": false,
+        "label": "Email",
+        "placeholder_v2": "Email address",
+        "required_message": "Please provide your Email",
+        "invalid_message": "Email is not correct"
+       }
+      ]
+     },
+     {
+      "heading": "Adult 2",
+      "fields": [
+       {
+        "name": "import_source_full_name_2",
+        "type": "text",
+        "placeholder": "Full Name",
+        "text": "",
+        "value": "",
+        "is_required": true,
+        "label": "Full Name",
+        "placeholder_v2": "First name",
+        "required_message": "Please provide your Full Name",
+        "invalid_message": "Full Name is not correct"
+       },
+       {
+        "name": "import_source_email_2",
+        "type": "email",
+        "placeholder": "Email",
+        "text": "",
+        "value": "",
+        "is_required": false,
+        "label": "Email",
+        "placeholder_v2": "Email address",
+        "required_message": "Please provide your Email",
+        "invalid_message": "Email is not correct"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "heading": "Special requests (optional)",
+    "import_source_post_data": true,
+    "fields": [
+     {
+      "name": "remarks",
+      "type": "textarea",
+      "placeholder": "Got any special requests for your stay? Whether it's early check-in or extra pillows, the Nester will do their best to accommodate. Please note, while hosts strive to fulfill all requests, they are subject to availability.",
+      "text": "",
+      "value": "",
+      "is_required": false,
+      "label": "Special requests (optional)",
+      "placeholder_v2": "Got any special requests for your stay? Whether it's early check-in or extra pillows, the Nester will do their best to accommodate. Please note, while hosts strive to fulfill all requests, they are subject to availability.",
+      "required_message": "Please provide your Remarks",
+      "invalid_message": "Remarks are not correct"
+     }
+    ]
+   },
+   {
+    "heading": "Tell us your preferences",
+    "import_source_post_data": true,
+    "fields": [
+     {
+      "name": "preferences",
+      "type": "checkbox",
+      "placeholder": "Tell us your preferences",
+      "text": "",
+      "options": {
+       "preferences": [
+        {
+         "key": "non-smoking",
+         "value": "I would like to book a non smoking room"
+        },
+        {
+         "key": "smoking",
+         "value": "I would like to book a smoking room"
+        }
+       ],
+       "others": [
+        {
+         "key": "airport-transfer",
+         "value": "Please contact me for arranging transfer from airport to hotel"
+        },
+        {
+         "key": "baby-cot",
+         "value": "I will need a baby cot"
+        },
+        {
+         "key": "early-check-in",
+         "value": "I would like to check in early by"
+        }
+       ]
+      },
+      "value": "",
+      "is_required": false,
+      "label": "Tell us your preferences",
+      "placeholder_v2": "Late night check-in, transfer request, dietary preferences and allergies, etc.",
+      "required_message": "Please provide your preferences",
+      "invalid_message": "Preferences are not correct"
+     }
+    ]
+   }
+  ],
+  "remarks_text": "Got any special requests for your stay? Whether it's early check-in, extra pillows, or a room with a view, the hotel will do their best to accommodate. Please note, while properties strive to fulfill all requests, they are subject to availability."
+ },
+ "prebook_res": null
+}

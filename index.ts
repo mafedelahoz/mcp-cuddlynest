@@ -206,10 +206,10 @@ const BOOKING_CHECKOUT_TOOL: Tool = {
   annotations: { title: "Get the CuddlyNest checkout link", readOnlyHint: false, destructiveHint: false, openWorldHint: true },
   description:
     "Book a stay: creates the booking request for one room rate and returns the CuddlyNest " +
-    "checkout link. Pass one entry of `bookingOptions[].offer` from cuddlynest_listing_details " +
-    "(same dates and guests). Only call it when the user has chosen that rate and wants to book. " +
-    "The checkout page shows the re-confirmed final price and cancellation policy, and the user " +
-    "pays there; never ask the user for card details.",
+    "checkout link, the final price (with taxes and fees) and the cancellation policy. Pass one " +
+    "entry of `bookingOptions[].offer` from cuddlynest_listing_details (same dates and guests). " +
+    "Only call it when the user has chosen that rate and wants to book. The user enters their " +
+    "details and pays on the checkout page; never ask the user for card details.",
   inputSchema: {
     type: "object",
     properties: {
@@ -235,11 +235,16 @@ const BOOKING_STATUS_TOOL: Tool = {
   name: "cuddlynest_booking_status",
   title: "Check a CuddlyNest booking",
   annotations: { title: "Check a CuddlyNest booking", readOnlyHint: true, openWorldHint: true },
-  description: "Status of a CuddlyNest booking by its booking reference.",
+  description:
+    "Status of a stay booked through cuddlynest_booking_checkout: pending (not paid yet), booked, " +
+    "cancelled or declined. Needs both enquiryId and bookingReference from that step.",
   inputSchema: {
     type: "object",
-    properties: { bookingReference: { type: "string" } },
-    required: ["bookingReference"],
+    properties: {
+      enquiryId: { type: "string", description: "enquiryId from cuddlynest_booking_checkout." },
+      bookingReference: { type: "string", description: "bookingReference from cuddlynest_booking_checkout." },
+    },
+    required: ["enquiryId", "bookingReference"],
   },
 };
 
@@ -922,12 +927,16 @@ async function handleBooking(name: string, params: any) {
           ...r,
           payment: { status: "handoff", method: "cuddlynest_checkout" },
           note:
-            "Send the user to checkoutUrl. It shows the final price and cancellation policy; " +
-            "if the price changed, the page says so before they pay.",
+            "Show the user price.total and the cancellation policy, then send them to checkoutUrl to " +
+            "enter their details and pay. Keep enquiryId and bookingReference to check the status later.",
         });
       }
       case "cuddlynest_booking_status":
-        return await getStayBookingStatus(String(params.bookingReference ?? ""));
+        return textResult({
+          vertical: "stays",
+          step: "status",
+          ...(await getStayBookingStatus(String(params.enquiryId ?? ""), String(params.bookingReference ?? ""))),
+        });
       case "cuddlynest_attraction_options":
         return textResult({
           vertical: "attractions",

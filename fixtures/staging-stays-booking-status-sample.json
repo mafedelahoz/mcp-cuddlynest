@@ -1,0 +1,16 @@
+{
+ "statusCode": 200,
+ "status": "Pending",
+ "message": "Booking status retrieved successfully",
+ "data": {
+  "booking_id": 60299,
+  "booking_no": "SCN2102993",
+  "booking_status": "Enquiry",
+  "approval": null,
+  "partner_booking_id": null,
+  "import_source_id": 29,
+  "checkin": "2027-01-12 00:00:00",
+  "checkout": "2027-01-14 00:00:00",
+  "date_added": "2026-11-20 12:56:54"
+ }
+}

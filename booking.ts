@@ -1,19 +1,29 @@
 // Stays booking for the CN MCP (AO-82): a room rate -> Request to Book -> the
-// CuddlyNest checkout URL, where the user sees the re-confirmed price and
-// cancellation policy (side widget), enters card details and pays (Stripe).
+// CuddlyNest checkout page, where the user enters card details and pays (Stripe).
 //
-// Request to Book (checkout-request-to-book service, JWT as Bearer) creates the
-// enquiry and starts the supplier pre-book, so it is a live supplier call (L2B):
-// only for an explicit booking flow, behind CUDDLYNEST_ENABLE_BOOKING_TOOLS. The
-// MCP never handles card data. There is no booking-status API yet.
+// Request to Book (JWT as Bearer) creates the enquiry (guest, user_id 0) and
+// starts the supplier pre-book, so it is a live supplier call (L2B): only for an
+// explicit booking flow, behind CUDDLYNEST_ENABLE_BOOKING_TOOLS. Right after it we
+// read the checkout's side widget (final price, cancellation) and the booking
+// status (booking number), the same reads the checkout page makes. The MCP never
+// handles card data. Checked end to end on staging 2026-11-20.
 
 import { AuthError, getAccessToken, invalidateAccessToken } from "./auth.js";
 
-// Read per call so tests (and a running server's env) can point it elsewhere.
+// Read per call so tests (and a running server's env) can point them elsewhere.
+// Prod hosts drop the "staging-" prefix (checkout-request-to-book.cuddlynest.com...).
+const envUrl = (name: string, fallback: string) => (process.env[name] || fallback).replace(/\/+$/, "");
 const apiUrl = () =>
-  (process.env.CUDDLYNEST_REQUEST_TO_BOOK_API_URL || "https://staging-checkout-request-to-book.cuddlynest.com").replace(
-    /\/+$/,
-    "",
+  envUrl("CUDDLYNEST_REQUEST_TO_BOOK_API_URL", "https://staging-checkout-request-to-book.cuddlynest.com");
+const sideWidgetUrl = () =>
+  envUrl("CUDDLYNEST_CHECKOUT_SIDE_WIDGET_API_URL", "https://staging-checkout-side-widget-detail.cuddlynest.com");
+const statusUrl = () =>
+  envUrl("CUDDLYNEST_CHECKOUT_CONFIRM_BOOKING_API_URL", "https://staging-checkout-confirm-booking.cuddlynest.com");
+/** Request to Book answers a relative checkout path; staging enquiries only open on the staging site. */
+const siteUrl = () =>
+  envUrl(
+    "CUDDLYNEST_CHECKOUT_SITE_URL",
+    new URL(apiUrl()).hostname.startsWith("staging-") ? "https://staging.cuddlynest.com" : "https://www.cuddlynest.com",
   );
 const timeoutMs = () => parseInt(process.env.CUDDLYNEST_REQUEST_TO_BOOK_TIMEOUT_MS || "30000", 10);
 
@@ -51,8 +61,34 @@ export interface StayRequest {
 
 export interface StayCheckout {
   checkoutUrl: string;
+  enquiryId: string;
+  /** Booking number shown to the user (e.g. CN...), from the booking status. */
   bookingReference: string | null;
-  enquiryId: string | null;
+  /** Final price as the checkout shows it; null when the side widget couldn't be read. */
+  price: StayPrice | null;
+  cancellation: StayCancellation | null;
+}
+
+export interface StayPrice {
+  total: Money | null;
+  lines: Array<{ name: string; amount: string }>;
+}
+
+export interface StayCancellation {
+  type: string | null;
+  policies: string[];
+  firstRefundDate: string | null;
+}
+
+export type BookingStatusValue = "pending" | "booked" | "cancelled" | "declined" | "unknown";
+
+export interface StayBookingStatus {
+  bookingReference: string | null;
+  status: BookingStatusValue;
+  /** Backend status as given, e.g. "Pending", "Cancelled", "Dismissed". */
+  backendStatus: string | null;
+  checkin: string | null;
+  checkout: string | null;
 }
 
 export type BookingErrorCode =
@@ -113,7 +149,6 @@ export function validateOffer(o: Partial<StayOffer>): string[] {
   const errors: string[] = [];
   if (!o.productId || typeof o.productId !== "string") errors.push("offer.productId is required");
   if (!o.roomId || typeof o.roomId !== "string") errors.push("offer.roomId is required");
-  if (!o.redisKey && !o.roomRedisKey) errors.push("offer.redisKey or offer.roomRedisKey is required");
   return errors;
 }
 
@@ -184,29 +219,83 @@ function isCuddlyNestUrl(u: unknown): u is string {
 const str = (v: unknown) => (v == null || v === "" ? null : String(v));
 
 /**
- * Maps a Request to Book response. The site redirects to `data.url` when
- * statusCode is 200; anything else means the rate can't be booked any more
- * (the site marks the room as "broke" and shows `message`).
+ * Maps a Request to Book response. Success is `data.url` (a relative
+ * "booking-payment/<enquiry id>?h=<hash>" path) plus `data.enId`. Without a url
+ * the rate can't be booked: the site marks the room as unavailable and shows
+ * `message` ("Sold out" comes back as statusCode 200 with no url).
  */
-export function mapRequestToBook(body: any): StayCheckout {
+export function mapRequestToBook(body: any, site = siteUrl()): { checkoutUrl: string; enquiryId: string } {
   const data = body?.data ?? {};
-  if (body?.statusCode !== 200 || !data.url) {
+  if (body?.statusCode !== 200 || !data.url || data.enId == null) {
+    const message = data.message ?? body?.message;
     throw new BookingError(
       "room_unavailable",
-      `This room can't be booked right now${body?.message ? `: ${body.message}` : ""}. Pick another rate or room.`,
+      `This room can't be booked right now${message ? `: ${message}` : ""}. Pick another rate or room.`,
+      data.price_changed ? { priceChanged: true, oldPrice: data.old_price ?? null, newPrice: data.new_price ?? null } : undefined,
     );
   }
-  if (!isCuddlyNestUrl(data.url)) {
+  let checkoutUrl: string;
+  try {
+    checkoutUrl = new URL(String(data.url), `${site}/`).toString();
+  } catch {
+    throw new BookingError("provider_error", "Request to Book answered an unreadable checkout link");
+  }
+  if (!isCuddlyNestUrl(checkoutUrl)) {
     throw new BookingError("provider_error", "Request to Book answered a checkout link outside cuddlynest.com");
   }
+  return { checkoutUrl, enquiryId: String(data.enId) };
+}
+
+/**
+ * Price and cancellation from the checkout side widget. Only the bill lines and
+ * policy text the page shows; never `debug`, `prebook_res`, `provider_info` or
+ * payment fields (supplier rates, partner booking ids).
+ */
+export function mapSideWidget(body: any, currency: string): { price: StayPrice; cancellation: StayCancellation } | null {
+  const d = body?.data;
+  if (body?.statusCode !== 200 || !d) return null;
+  const bill = d.bill_info ?? {};
+  const amount = Number(bill.amount_pc);
+  const cp = d.cancellation_policy ?? {};
   return {
-    checkoutUrl: data.url,
-    bookingReference: str(data.booking_no),
-    enquiryId: str(data.enquiry_id ?? data.enId),
+    price: {
+      total: Number.isFinite(amount) && amount > 0 ? { amount, currency } : null,
+      lines: (Array.isArray(bill.details) ? bill.details : [])
+        .filter((l: any) => l?.name && l?.amount != null)
+        .map((l: any) => ({ name: String(l.name), amount: String(l.amount) })),
+    },
+    cancellation: {
+      type: str(cp.type),
+      policies: (Array.isArray(cp.policies) ? cp.policies : []).map((p: any) => p?.text).filter(Boolean),
+      firstRefundDate: str(cp.first_refund_date),
+    },
   };
 }
 
-/** Bearer JWT; a 401/403 drops the cached token and retries once. */
+const STATUS_MAP: Record<string, BookingStatusValue> = {
+  pending: "pending",
+  booked: "booked",
+  confirmed: "booked",
+  completed: "booked",
+  cancelled: "cancelled",
+  canceled: "cancelled",
+  dismissed: "declined",
+  declined: "declined",
+};
+
+export function mapBookingStatus(body: any): StayBookingStatus {
+  const d = body?.data ?? {};
+  const backendStatus = str(body?.status);
+  return {
+    bookingReference: str(d.booking_no),
+    status: STATUS_MAP[(backendStatus ?? "").toLowerCase()] ?? "unknown",
+    backendStatus,
+    checkin: str(d.checkin)?.slice(0, 10) ?? null,
+    checkout: str(d.checkout)?.slice(0, 10) ?? null,
+  };
+}
+
+/** GET with the service JWT as Bearer; a 401/403 drops the cached token and retries once. */
 async function getWithJwt(url: string): Promise<{ status: number; body: any }> {
   for (let attempt = 0; attempt < 2; attempt++) {
     let token: string;
@@ -224,7 +313,7 @@ async function getWithJwt(url: string): Promise<{ status: number; body: any }> {
       });
     } catch (e) {
       const code = (e as any)?.name === "TimeoutError" ? "timeout" : "network";
-      throw new BookingError("provider_error", `Request to Book unreachable (${code})`);
+      throw new BookingError("provider_error", `Booking service unreachable (${code})`);
     }
     if ((res.status === 401 || res.status === 403) && attempt === 0) {
       invalidateAccessToken();
@@ -238,12 +327,23 @@ async function getWithJwt(url: string): Promise<{ status: number; body: any }> {
     }
     return { status: res.status, body };
   }
-  throw new BookingError("provider_error", "Request to Book refused the token twice");
+  throw new BookingError("provider_error", "Booking service refused the token twice");
+}
+
+/** A read the checkout page makes anyway; its failure never fails the booking step. */
+async function optionalRead(url: string): Promise<any> {
+  try {
+    const { status, body } = await getWithJwt(url);
+    return status === 200 ? body : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
- * Creates the enquiry for one room rate and returns the checkout URL. Live
- * supplier call (pre-book), so only on an explicit booking request.
+ * Creates the enquiry for one room rate and returns the checkout link, with the
+ * final price and cancellation policy. Live supplier call (pre-book), so only on
+ * an explicit booking request.
  */
 export async function requestToBook(
   offer: StayOffer,
@@ -263,22 +363,45 @@ export async function requestToBook(
   if (status === 401 || status === 403) throw new BookingError("provider_error", `Request to Book refused the token (HTTP ${status})`);
   if (status < 200 || status >= 300 || !body) throw new BookingError("provider_error", `Request to Book answered HTTP ${status}`);
 
-  const checkout = mapRequestToBook(body);
+  const { checkoutUrl, enquiryId } = mapRequestToBook(body);
+  const id = encodeURIComponent(enquiryId);
+  const [widget, statusBody] = await Promise.all([
+    optionalRead(`${sideWidgetUrl()}/api/v1/checkoutpage/side_widget_detail?booking_id=${id}&currency=${stay.currency}`),
+    optionalRead(`${statusUrl()}/api/v1/checkoutpage/booking_status?booking_id=${id}`),
+  ]);
+  const details = mapSideWidget(widget, stay.currency);
+  const checkout: StayCheckout = {
+    checkoutUrl,
+    enquiryId,
+    bookingReference: statusBody ? mapBookingStatus(statusBody).bookingReference : null,
+    price: details?.price ?? null,
+    cancellation: details?.cancellation ?? null,
+  };
   opts.log?.("info", "Stay request to book created", {
     productId: offer.productId,
+    enquiryId,
     bookingReference: checkout.bookingReference,
+    priced: checkout.price?.total != null,
     ms: Date.now() - started,
   });
   return checkout;
 }
 
-/** No booking-status API exists yet (asked in CP-11612). */
-export async function getStayBookingStatus(bookingReference: string): Promise<never> {
+/**
+ * Status of a booking this flow created. The status endpoint answers any
+ * enquiry id, so both the id and its booking number must match: the MCP won't
+ * look up bookings by guessing sequential ids.
+ */
+export async function getStayBookingStatus(enquiryId: string, bookingReference: string): Promise<StayBookingStatus> {
+  if (!/^\d+$/.test(enquiryId ?? "")) throw new BookingError("invalid_input", "enquiryId must be the numeric id from the checkout step");
   if (!bookingReference?.trim()) throw new BookingError("invalid_input", "bookingReference is required");
-  throw new BookingError(
-    "contract_pending",
-    "Booking status isn't available from the assistant yet. The user gets the confirmation by email and in their CuddlyNest account.",
-  );
+  const { status, body } = await getWithJwt(`${statusUrl()}/api/v1/checkoutpage/booking_status?booking_id=${enquiryId}`);
+  const notFound = () => new BookingError("invalid_input", "No booking matches that enquiryId and bookingReference.");
+  if (status === 404) throw notFound();
+  if (status !== 200 || !body) throw new BookingError("provider_error", `Booking status answered HTTP ${status}`);
+  const mapped = mapBookingStatus(body);
+  if (mapped.bookingReference?.toUpperCase() !== bookingReference.trim().toUpperCase()) throw notFound();
+  return mapped;
 }
 
 export function isBookingEnabled(): boolean {
