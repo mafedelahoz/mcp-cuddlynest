@@ -1,0 +1,702 @@
+{
+ "status": "success",
+ "statusCode": 200,
+ "message": "Successfully got hotel rooms and prices",
+ "data": {
+  "duplicate_source_id": 0,
+  "filters": [
+   "free_cancellation",
+   "non_refundable"
+  ],
+  "sessionid": "room_groups_:CartagenaColombia:0:0:2:1:Hotel:viewport:3220156:2027-01-12:2027-01-14:unitedstates",
+  "streaming_status": "complete",
+  "unit_details": [
+   {
+    "product_id": "3242003_3220156",
+    "partner_id": "33",
+    "partner_name": "dida travels",
+    "remaining_rooms": 202,
+    "title": "Standard Room",
+    "old_title": "Deluxe Room",
+    "title_class": "",
+    "record_id": 2,
+    "room_filters": [
+     "free_cancellation",
+     "non_refundable"
+    ],
+    "guests": 2,
+    "unit_price": 28,
+    "price_breakdown": {
+     "total": {
+      "amount": 28,
+      "name": "Total"
+     },
+     "prices": [
+      {
+       "amount": 26,
+       "name": 2,
+       "sub_text": 13
+      },
+      {
+       "amount": 2,
+       "name": "Affiliate Service Charge"
+      }
+     ],
+     "pay_now": {
+      "name": "Pay now",
+      "amount": 28
+     },
+     "old_unit_price": 29,
+     "old_base_price": 27,
+     "price_diff": 1
+    },
+    "cancellation_policy": {
+     "type": "Non-Refundable",
+     "text": [
+      "This property is Non-Refundable"
+     ]
+    },
+    "cancellation_policy_type": "non_refundable",
+    "is_instant": false,
+    "room_size": "",
+    "room_size_unit": "",
+    "room_groups": {
+     "non_refundable": {
+      "product_id": "3242003_3220156",
+      "partner_id": "33",
+      "partner_name": "dida travels",
+      "record_id": 5,
+      "group_type": "non_refundable",
+      "group_title": "Non-Refundable",
+      "price_diff": 0,
+      "price_breakdown": {
+       "total": {
+        "amount": 28,
+        "name": "Total"
+       },
+       "prices": [
+        {
+         "amount": 26,
+         "name": 2,
+         "sub_text": 13
+        },
+        {
+         "amount": 2,
+         "name": "Affiliate Service Charge"
+        }
+       ],
+       "pay_now": {
+        "name": "Pay now",
+        "amount": 28
+       },
+       "old_unit_price": 29,
+       "old_base_price": 27,
+       "price_diff": 1
+      },
+      "cancellation_policy": {
+       "type": "Non-Refundable",
+       "text": [
+        "This property is Non-Refundable"
+       ]
+      },
+      "cancellation_policy_type": "non_refundable",
+      "id": "iwxV3NHhu50-k6serjk9Vpg",
+      "unit_original_id": 0,
+      "redis_key": "3242003_34764_ROdLzQmQVBqS9fid_20_11_202612_56_03",
+      "room_redis_key": "3242003_34764_ROdLzQmQVBqS9fid_20_11_202612_56_03_iwxV3NHhu50-k6serjk9Vpg_0UBQXI",
+      "unit_price": 28,
+      "is_instant": false,
+      "extra_type": "no_meal",
+      "title_class": "",
+      "old_title": "Deluxe Room",
+      "extras": [
+       {
+        "product_id": "3242003_3220156",
+        "partner_id": "33",
+        "partner_name": "dida travels",
+        "record_id": 5,
+        "extra_type": "no_meal",
+        "extra_title": "No Meal Included",
+        "id": "iwxV3NHhu50-k6serjk9Vpg",
+        "redis_key": "3242003_34764_ROdLzQmQVBqS9fid_20_11_202612_56_03",
+        "room_redis_key": "3242003_34764_ROdLzQmQVBqS9fid_20_11_202612_56_03_iwxV3NHhu50-k6serjk9Vpg_0UBQXI",
+        "unit_original_id": 0,
+        "unit_price": 28,
+        "price_diff": 0,
+        "price_breakdown": {
+         "total": {
+          "amount": 28,
+          "name": "Total"
+         },
+         "prices": [
+          {
+           "amount": 26,
+           "name": 2,
+           "sub_text": 13
+          },
+          {
+           "amount": 2,
+           "name": "Affiliate Service Charge"
+          }
+         ],
+         "pay_now": {
+          "name": "Pay now",
+          "amount": 28
+         },
+         "old_unit_price": 29,
+         "old_base_price": 27,
+         "price_diff": 1
+        },
+        "cancellation_policy": {
+         "type": "Non-Refundable",
+         "text": [
+          "This property is Non-Refundable"
+         ]
+        },
+        "is_instant": false,
+        "original_room_title": "Deluxe Room",
+        "title_class": "",
+        "old_title": "Deluxe Room"
+       }
+      ]
+     },
+     "free_cancellation": {
+      "product_id": "3220156_3220156",
+      "partner_id": 29,
+      "partner_name": "ratehawk",
+      "record_id": 4,
+      "group_type": "free_cancellation",
+      "group_title": "Free Cancellation",
+      "price_diff": 42,
+      "price_breakdown": {
+       "total": {
+        "amount": 70,
+        "name": "Total"
+       },
+       "prices": [
+        {
+         "amount": 54,
+         "name": 2,
+         "sub_text": 27
+        },
+        {
+         "amount": 12,
+         "name": "Taxes and fees"
+        },
+        {
+         "amount": 4,
+         "name": "Affiliate Service Charge"
+        }
+       ],
+       "pay_now": {
+        "name": "Pay now",
+        "amount": 70
+       },
+       "old_unit_price": 73,
+       "old_base_price": 56,
+       "price_diff": 3
+      },
+      "cancellation_policy": {
+       "type": "Free Cancellation",
+       "text": [
+        "Cancel before 10 January 2027 at 6:00 AM to receive a 100% refund.",
+        "Cancellations made on or after 10 January 2027 at 6:00 AM are non-refundable.",
+        "The cancellation deadline is based on the property's local time."
+       ]
+      },
+      "cancellation_policy_type": "free_cancellation",
+      "id": "h-f1a9755a-3836-5c8f-a241-c1617df59e56",
+      "unit_original_id": "h-f1a9755a-3836-5c8f-a241-c1617df59e56",
+      "redis_key": "3220156_maxi_hotel__spa_v9rzuBdTrQTwzvPI_20_11_202612_56_03",
+      "room_redis_key": "3220156_maxi_hotel__spa_v9rzuBdTrQTwzvPI_20_11_202612_56_03_h-f1a9755a-3836-5c8f-a241-c1617df59e56_J83IKe",
+      "unit_price": 70,
+      "is_instant": false,
+      "extra_type": "no_meal",
+      "title_class": "STANDARD_VILLA",
+      "old_title": "2 Bedrooms Villa",
+      "extras": [
+       {
+        "product_id": "3220156_3220156",
+        "partner_id": 29,
+        "partner_name": "ratehawk",
+        "record_id": 4,
+        "extra_type": "no_meal",
+        "extra_title": "No Meal Included",
+        "id": "h-f1a9755a-3836-5c8f-a241-c1617df59e56",
+        "redis_key": "3220156_maxi_hotel__spa_v9rzuBdTrQTwzvPI_20_11_202612_56_03",
+        "room_redis_key": "3220156_maxi_hotel__spa_v9rzuBdTrQTwzvPI_20_11_202612_56_03_h-f1a9755a-3836-5c8f-a241-c1617df59e56_J83IKe",
+        "unit_original_id": "h-f1a9755a-3836-5c8f-a241-c1617df59e56",
+        "unit_price": 70,
+        "price_diff": 0,
+        "price_breakdown": {
+         "total": {
+          "amount": 70,
+          "name": "Total"
+         },
+         "prices": [
+          {
+           "amount": 54,
+           "name": 2,
+           "sub_text": 27
+          },
+          {
+           "amount": 12,
+           "name": "Taxes and fees"
+          },
+          {
+           "amount": 4,
+           "name": "Affiliate Service Charge"
+          }
+         ],
+         "pay_now": {
+          "name": "Pay now",
+          "amount": 70
+         },
+         "old_unit_price": 73,
+         "old_base_price": 56,
+         "price_diff": 3
+        },
+        "cancellation_policy": {
+         "type": "Free Cancellation",
+         "text": [
+          "Cancel before 10 January 2027 at 6:00 AM to receive a 100% refund.",
+          "Cancellations made on or after 10 January 2027 at 6:00 AM are non-refundable.",
+          "The cancellation deadline is based on the property's local time."
+         ]
+        },
+        "is_instant": false,
+        "original_room_title": "2 Bedrooms Villa",
+        "title_class": "STANDARD_VILLA",
+        "old_title": "2 Bedrooms Villa"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "product_id": "3220156_3220156",
+    "partner_id": 29,
+    "partner_name": "ratehawk",
+    "remaining_rooms": 17,
+    "title": "Deluxe Room",
+    "old_title": "Deluxe Double room (full double bed)",
+    "title_class": "DELUXE_DOUBLE",
+    "record_id": 0,
+    "room_filters": [
+     "free_cancellation",
+     "non_refundable"
+    ],
+    "guests": 2,
+    "unit_price": 29,
+    "price_breakdown": {
+     "total": {
+      "amount": 29,
+      "name": "Total"
+     },
+     "prices": [
+      {
+       "amount": 22,
+       "name": 2,
+       "sub_text": 11
+      },
+      {
+       "amount": 5,
+       "name": "Taxes and fees"
+      },
+      {
+       "amount": 2,
+       "name": "Affiliate Service Charge"
+      }
+     ],
+     "pay_now": {
+      "name": "Pay now",
+      "amount": 29
+     },
+     "old_unit_price": 30,
+     "old_base_price": 23,
+     "price_diff": 1
+    },
+    "cancellation_policy": {
+     "type": "Non-Refundable",
+     "text": [
+      "This property is Non-Refundable"
+     ]
+    },
+    "cancellation_policy_type": "non_refundable",
+    "is_instant": false,
+    "room_size": "",
+    "room_size_unit": "",
+    "room_groups": {
+     "non_refundable": {
+      "product_id": "3220156_3220156",
+      "partner_id": 29,
+      "partner_name": "ratehawk",
+      "record_id": 0,
+      "group_type": "non_refundable",
+      "group_title": "Non-Refundable",
+      "price_diff": 0,
+      "price_breakdown": {
+       "total": {
+        "amount": 29,
+        "name": "Total"
+       },
+       "prices": [
+        {
+         "amount": 22,
+         "name": 2,
+         "sub_text": 11
+        },
+        {
+         "amount": 5,
+         "name": "Taxes and fees"
+        },
+        {
+         "amount": 2,
+         "name": "Affiliate Service Charge"
+        }
+       ],
+       "pay_now": {
+        "name": "Pay now",
+        "amount": 29
+       },
+       "old_unit_price": 30,
+       "old_base_price": 23,
+       "price_diff": 1
+      },
+      "cancellation_policy": {
+       "type": "Non-Refundable",
+       "text": [
+        "This property is Non-Refundable"
+       ]
+      },
+      "cancellation_policy_type": "non_refundable",
+      "id": "h-c3afdfa2-ca2a-5fd3-a30a-32f472df36d2",
+      "unit_original_id": "h-c3afdfa2-ca2a-5fd3-a30a-32f472df36d2",
+      "redis_key": "3220156_maxi_hotel__spa_v9rzuBdTrQTwzvPI_20_11_202612_56_03",
+      "room_redis_key": "3220156_maxi_hotel__spa_v9rzuBdTrQTwzvPI_20_11_202612_56_03_h-c3afdfa2-ca2a-5fd3-a30a-32f472df36d2_2OUdDb",
+      "unit_price": 29,
+      "is_instant": false,
+      "extra_type": "no_meal",
+      "title_class": "DELUXE_DOUBLE",
+      "old_title": "Deluxe Double room (full double bed)",
+      "extras": [
+       {
+        "product_id": "3220156_3220156",
+        "partner_id": 29,
+        "partner_name": "ratehawk",
+        "record_id": 0,
+        "extra_type": "no_meal",
+        "extra_title": "No Meal Included",
+        "id": "h-c3afdfa2-ca2a-5fd3-a30a-32f472df36d2",
+        "redis_key": "3220156_maxi_hotel__spa_v9rzuBdTrQTwzvPI_20_11_202612_56_03",
+        "room_redis_key": "3220156_maxi_hotel__spa_v9rzuBdTrQTwzvPI_20_11_202612_56_03_h-c3afdfa2-ca2a-5fd3-a30a-32f472df36d2_2OUdDb",
+        "unit_original_id": "h-c3afdfa2-ca2a-5fd3-a30a-32f472df36d2",
+        "unit_price": 29,
+        "price_diff": 0,
+        "price_breakdown": {
+         "total": {
+          "amount": 29,
+          "name": "Total"
+         },
+         "prices": [
+          {
+           "amount": 22,
+           "name": 2,
+           "sub_text": 11
+          },
+          {
+           "amount": 5,
+           "name": "Taxes and fees"
+          },
+          {
+           "amount": 2,
+           "name": "Affiliate Service Charge"
+          }
+         ],
+         "pay_now": {
+          "name": "Pay now",
+          "amount": 29
+         },
+         "old_unit_price": 30,
+         "old_base_price": 23,
+         "price_diff": 1
+        },
+        "cancellation_policy": {
+         "type": "Non-Refundable",
+         "text": [
+          "This property is Non-Refundable"
+         ]
+        },
+        "is_instant": false,
+        "original_room_title": "Deluxe Double room (full double bed)",
+        "title_class": "DELUXE_DOUBLE",
+        "old_title": "Deluxe Double room (full double bed)"
+       }
+      ]
+     },
+     "free_cancellation": {
+      "product_id": "3220156_3220156",
+      "partner_id": 29,
+      "partner_name": "ratehawk",
+      "record_id": 1,
+      "group_type": "free_cancellation",
+      "group_title": "Free Cancellation",
+      "price_diff": 3,
+      "price_breakdown": {
+       "total": {
+        "amount": 32,
+        "name": "Total"
+       },
+       "prices": [
+        {
+         "amount": 24,
+         "name": 2,
+         "sub_text": 12
+        },
+        {
+         "amount": 6,
+         "name": "Taxes and fees"
+        },
+        {
+         "amount": 2,
+         "name": "Affiliate Service Charge"
+        }
+       ],
+       "pay_now": {
+        "name": "Pay now",
+        "amount": 32
+       },
+       "old_unit_price": 32,
+       "old_base_price": 24,
+       "price_diff": 0
+      },
+      "cancellation_policy": {
+       "type": "Free Cancellation",
+       "text": [
+        "Cancel before 10 January 2027 at 6:00 AM to receive a 100% refund.",
+        "Cancellations made on or after 10 January 2027 at 6:00 AM are non-refundable.",
+        "The cancellation deadline is based on the property's local time."
+       ]
+      },
+      "cancellation_policy_type": "free_cancellation",
+      "id": "h-c86544e1-339c-52e6-99db-7b3f9a803b1a",
+      "unit_original_id": "h-c86544e1-339c-52e6-99db-7b3f9a803b1a",
+      "redis_key": "3220156_maxi_hotel__spa_v9rzuBdTrQTwzvPI_20_11_202612_56_03",
+      "room_redis_key": "3220156_maxi_hotel__spa_v9rzuBdTrQTwzvPI_20_11_202612_56_03_h-c86544e1-339c-52e6-99db-7b3f9a803b1a_eLB3w6",
+      "unit_price": 32,
+      "is_instant": false,
+      "extra_type": "no_meal",
+      "title_class": "DELUXE_DOUBLE",
+      "old_title": "Deluxe Double room (full double bed)",
+      "extras": [
+       {
+        "product_id": "3220156_3220156",
+        "partner_id": 29,
+        "partner_name": "ratehawk",
+        "record_id": 1,
+        "extra_type": "no_meal",
+        "extra_title": "No Meal Included",
+        "id": "h-c86544e1-339c-52e6-99db-7b3f9a803b1a",
+        "redis_key": "3220156_maxi_hotel__spa_v9rzuBdTrQTwzvPI_20_11_202612_56_03",
+        "room_redis_key": "3220156_maxi_hotel__spa_v9rzuBdTrQTwzvPI_20_11_202612_56_03_h-c86544e1-339c-52e6-99db-7b3f9a803b1a_eLB3w6",
+        "unit_original_id": "h-c86544e1-339c-52e6-99db-7b3f9a803b1a",
+        "unit_price": 32,
+        "price_diff": 0,
+        "price_breakdown": {
+         "total": {
+          "amount": 32,
+          "name": "Total"
+         },
+         "prices": [
+          {
+           "amount": 24,
+           "name": 2,
+           "sub_text": 12
+          },
+          {
+           "amount": 6,
+           "name": "Taxes and fees"
+          },
+          {
+           "amount": 2,
+           "name": "Affiliate Service Charge"
+          }
+         ],
+         "pay_now": {
+          "name": "Pay now",
+          "amount": 32
+         },
+         "old_unit_price": 32,
+         "old_base_price": 24,
+         "price_diff": 0
+        },
+        "cancellation_policy": {
+         "type": "Free Cancellation",
+         "text": [
+          "Cancel before 10 January 2027 at 6:00 AM to receive a 100% refund.",
+          "Cancellations made on or after 10 January 2027 at 6:00 AM are non-refundable.",
+          "The cancellation deadline is based on the property's local time."
+         ]
+        },
+        "is_instant": false,
+        "original_room_title": "Deluxe Double room (full double bed)",
+        "title_class": "DELUXE_DOUBLE",
+        "old_title": "Deluxe Double room (full double bed)"
+       }
+      ]
+     }
+    }
+   },
+   {
+    "product_id": "3242003_3220156",
+    "partner_id": "33",
+    "partner_name": "dida travels",
+    "remaining_rooms": 103,
+    "title": "Standard Suite",
+    "old_title": "Suite Triple Room",
+    "title_class": "STANDARD_SUITE",
+    "record_id": 3,
+    "room_filters": [
+     "non_refundable"
+    ],
+    "guests": 2,
+    "unit_price": 51,
+    "price_breakdown": {
+     "total": {
+      "amount": 51,
+      "name": "Total"
+     },
+     "prices": [
+      {
+       "amount": 48,
+       "name": 2,
+       "sub_text": 24
+      },
+      {
+       "amount": 3,
+       "name": "Affiliate Service Charge"
+      }
+     ],
+     "pay_now": {
+      "name": "Pay now",
+      "amount": 51
+     },
+     "old_unit_price": 53,
+     "old_base_price": 50,
+     "price_diff": 2
+    },
+    "cancellation_policy": {
+     "type": "Non-Refundable",
+     "text": [
+      "This property is Non-Refundable"
+     ]
+    },
+    "cancellation_policy_type": "non_refundable",
+    "is_instant": false,
+    "room_size": "",
+    "room_size_unit": "",
+    "room_groups": {
+     "non_refundable": {
+      "product_id": "3242003_3220156",
+      "partner_id": "33",
+      "partner_name": "dida travels",
+      "record_id": 7,
+      "group_type": "non_refundable",
+      "group_title": "Non-Refundable",
+      "price_diff": 0,
+      "price_breakdown": {
+       "total": {
+        "amount": 51,
+        "name": "Total"
+       },
+       "prices": [
+        {
+         "amount": 48,
+         "name": 2,
+         "sub_text": 24
+        },
+        {
+         "amount": 3,
+         "name": "Affiliate Service Charge"
+        }
+       ],
+       "pay_now": {
+        "name": "Pay now",
+        "amount": 51
+       },
+       "old_unit_price": 53,
+       "old_base_price": 50,
+       "price_diff": 2
+      },
+      "cancellation_policy": {
+       "type": "Non-Refundable",
+       "text": [
+        "This property is Non-Refundable"
+       ]
+      },
+      "cancellation_policy_type": "non_refundable",
+      "id": "cyr8fsD3rRy-bWJ8MyWjVFO",
+      "unit_original_id": 0,
+      "redis_key": "3242003_34764_ROdLzQmQVBqS9fid_20_11_202612_56_03",
+      "room_redis_key": "3242003_34764_ROdLzQmQVBqS9fid_20_11_202612_56_03_cyr8fsD3rRy-bWJ8MyWjVFO_Eg5Vpw",
+      "unit_price": 51,
+      "is_instant": false,
+      "extra_type": "no_meal",
+      "title_class": "STANDARD_SUITE",
+      "old_title": "Suite Triple Room",
+      "extras": [
+       {
+        "product_id": "3242003_3220156",
+        "partner_id": "33",
+        "partner_name": "dida travels",
+        "record_id": 7,
+        "extra_type": "no_meal",
+        "extra_title": "No Meal Included",
+        "id": "cyr8fsD3rRy-bWJ8MyWjVFO",
+        "redis_key": "3242003_34764_ROdLzQmQVBqS9fid_20_11_202612_56_03",
+        "room_redis_key": "3242003_34764_ROdLzQmQVBqS9fid_20_11_202612_56_03_cyr8fsD3rRy-bWJ8MyWjVFO_Eg5Vpw",
+        "unit_original_id": 0,
+        "unit_price": 51,
+        "price_diff": 0,
+        "price_breakdown": {
+         "total": {
+          "amount": 51,
+          "name": "Total"
+         },
+         "prices": [
+          {
+           "amount": 48,
+           "name": 2,
+           "sub_text": 24
+          },
+          {
+           "amount": 3,
+           "name": "Affiliate Service Charge"
+          }
+         ],
+         "pay_now": {
+          "name": "Pay now",
+          "amount": 51
+         },
+         "old_unit_price": 53,
+         "old_base_price": 50,
+         "price_diff": 2
+        },
+        "cancellation_policy": {
+         "type": "Non-Refundable",
+         "text": [
+          "This property is Non-Refundable"
+         ]
+        },
+        "is_instant": false,
+        "original_room_title": "Suite Triple Room",
+        "title_class": "STANDARD_SUITE",
+        "old_title": "Suite Triple Room"
+       }
+      ]
+     }
+    }
+   }
+  ]
+ }
+}

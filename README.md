@@ -38,6 +38,11 @@ walks up its **React fiber tree** to the nearest ancestor component whose props
 carry both `unit_price` and `roomGroups`. Those props are the room offer the
 page already rendered.
 
+With `CUDDLYNEST_LDP_ROOMS_URL` and the JWT credentials set, room prices come
+instead from the listing page's own room-groups socket (`ldp-rooms.ts`): the same
+data in 1–6 s, no browser. The page scrape stays the default and the fallback
+(`rooms.source` says which one answered).
+
 This is coupled to CuddlyNest's current frontend internals (a React prop shape,
 not a stable contract). If they ship a frontend change it can start returning
 zero rooms even though the public page still shows prices. The single place to
@@ -198,6 +203,8 @@ npm run watch
 - `db.ts`, `cache.ts`, `destination.ts` — read-only catalog DB for stays, the
   JSON caches (stays, attractions, flights) with age-based expiry, and destination parsing
 - `fallback-provider.ts` — public-site fallback for `source: "auto"`
+- `ldp-rooms.ts` — room prices from the listing page's room-groups socket
+  (opt-in, falls back to the page scrape)
 - `auth.ts` — service JWT (fetched with an API key, cached, renewed before expiry)
 - `be-api-provider.ts` — live stays availability (`source: "live"`)
 - `attractions-provider.ts`, `flights-provider.ts` — live attractions and flights search

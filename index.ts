@@ -32,6 +32,7 @@ import {
   startAttractionsCacheRefresh,
 } from "./attractions-provider.js";
 import { FlightsError, getCachedFlights, searchFlights, type FlightsRequest } from "./flights-provider.js";
+import { getLdpRooms, isLdpRoomsEnabled } from "./ldp-rooms.js";
 import {
   BookingError,
   getStayBookingStatus,
@@ -794,6 +795,57 @@ async function handleSearch(params: any) {
   });
 }
 
+/**
+ * Rooms from the listing page's room-groups socket, in the same shape as the
+ * page scrape. Null (with a note) when the socket fails, so the caller can
+ * read the page instead.
+ */
+async function roomsFromSocket(
+  productId: string,
+  hotelUrl: string,
+  g: ReturnType<typeof normalizeGuests>,
+  staticListing: any,
+  notes: string[],
+) {
+  const started = Date.now();
+  try {
+    const r = await getLdpRooms({
+      productId,
+      checkin: String(g.checkin),
+      checkout: String(g.checkout),
+      adults: g.adults,
+      children: g.children,
+      childAges: g.childAges,
+      infants: g.infants,
+      rooms: g.rooms,
+      currency: g.currency,
+      location: [staticListing?.city, staticListing?.state, staticListing?.country].filter(Boolean).join(", "),
+    });
+    log("info", "Rooms from the room-groups socket", { productId, count: r.rooms.length, complete: r.complete, ms: Date.now() - started });
+    const units = r.rooms.map((u) => shapeUnit(u, g.currency, isBookingEnabled()));
+    const listingUrl = new URL(hotelUrl);
+    for (const [k, v] of Object.entries({ checkin: g.checkin, checkout: g.checkout, adults: g.adults, children: g.children, rooms: g.rooms, currency: g.currency })) {
+      listingUrl.searchParams.set(k, String(v));
+    }
+    if (!r.complete) notes.push("Some suppliers hadn't answered when room prices were read; there may be more rates.");
+    if (!units.length) notes.push("No rooms available for these dates and guests.");
+    return {
+      source: "room_prices_api",
+      complete: r.complete,
+      listingUrl: listingUrl.toString(),
+      fromPrice: units.length ? Math.min(...units.map((u) => u.unitPrice)) : null,
+      currency: g.currency,
+      scrapedAt: new Date().toISOString(),
+      partnersSeen: [...new Set(units.map((u) => u.partnerName))],
+      units,
+    };
+  } catch (e) {
+    log("warn", "Room-groups socket failed, reading the listing page", { productId, error: e instanceof Error ? e.message : String(e) });
+    notes.push("Room prices API unavailable; rooms were read from the listing page instead.");
+    return null;
+  }
+}
+
 async function handleListingDetails(params: any) {
   const g = normalizeGuests(params);
 
@@ -828,52 +880,57 @@ async function handleListingDetails(params: any) {
     }
   }
 
-  // --- Rooms + pricing (headless browser, public page) ---------------
+  // --- Rooms + pricing: the page's room-groups socket when configured,
+  // otherwise the public page in a headless browser --------------------
   let rooms: any = null;
   let roomsError: string | undefined;
   if (!g.checkin || !g.checkout) {
     roomsError =
       "checkin and checkout (YYYY-MM-DD) are required to read room prices and availability.";
   } else {
-    try {
-      const listingPath = await resolveListingPath(productId);
-      const result = await scrapeListing(
-        {
-          productId,
-          listingPath,
-          checkin: g.checkin,
-          checkout: g.checkout,
-          adults: g.adults,
-          children: g.children,
-          childrenAges: g.childAges,
-          infants: g.infants,
-          rooms: g.rooms,
-          currency: g.currency,
-        },
-        { timeoutMs: SCRAPE_TIMEOUT_MS, log },
-      );
-      const units = result.rooms.map((u) => shapeUnit(u, g.currency, isBookingEnabled()));
-      rooms = {
-        listingUrl: result.url,
-        // "From <price>" header off the page when present; otherwise the cheapest
-        // extracted unit (the header uses a fragile selector — see scrape-listing.ts).
-        fromPriceText: result.fromPriceText,
-        fromPrice: units.length ? Math.min(...units.map((u) => u.unitPrice)) : null,
-        currency: g.currency,
-        scrapedAt: result.scrapedAt,
-        partnersSeen: [...new Set(units.map((u) => u.partnerName))],
-        units,
-      };
-      if (result.rooms.length === 0) {
-        notes.push(
-          "The listing page rendered but no room offers were extracted. Either the " +
-            "page did not finish loading in time (raise CUDDLYNEST_SCRAPE_TIMEOUT_MS) " +
-            "or CuddlyNest's frontend prop shape changed — see extractRoomsFromDom() " +
-            "in scrape-listing.ts.",
+    if (isLdpRoomsEnabled()) rooms = await roomsFromSocket(productId, hotelUrl, g, staticListing, notes);
+    if (!rooms) {
+      try {
+        const listingPath = await resolveListingPath(productId);
+        const result = await scrapeListing(
+          {
+            productId,
+            listingPath,
+            checkin: g.checkin,
+            checkout: g.checkout,
+            adults: g.adults,
+            children: g.children,
+            childrenAges: g.childAges,
+            infants: g.infants,
+            rooms: g.rooms,
+            currency: g.currency,
+          },
+          { timeoutMs: SCRAPE_TIMEOUT_MS, log },
         );
+        const units = result.rooms.map((u) => shapeUnit(u, g.currency, isBookingEnabled()));
+        rooms = {
+          source: "listing_page",
+          listingUrl: result.url,
+          // "From <price>" header off the page when present; otherwise the cheapest
+          // extracted unit (the header uses a fragile selector — see scrape-listing.ts).
+          fromPriceText: result.fromPriceText,
+          fromPrice: units.length ? Math.min(...units.map((u) => u.unitPrice)) : null,
+          currency: g.currency,
+          scrapedAt: result.scrapedAt,
+          partnersSeen: [...new Set(units.map((u) => u.partnerName))],
+          units,
+        };
+        if (result.rooms.length === 0) {
+          notes.push(
+            "The listing page rendered but no room offers were extracted. Either the " +
+              "page did not finish loading in time (raise CUDDLYNEST_SCRAPE_TIMEOUT_MS) " +
+              "or CuddlyNest's frontend prop shape changed — see extractRoomsFromDom() " +
+              "in scrape-listing.ts.",
+          );
+        }
+      } catch (e) {
+        roomsError = e instanceof Error ? e.message : String(e);
       }
-    } catch (e) {
-      roomsError = e instanceof Error ? e.message : String(e);
     }
   }
 
