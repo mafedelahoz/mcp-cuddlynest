@@ -43,10 +43,23 @@ const adult = pkg.tickets.find((t) => t.type === "adult");
 const infant = pkg.tickets.find((t) => t.type === "infant");
 check("tickets: adult selling price, infant needs an adult", adult?.price?.amount === 220.5 && infant?.requiresAnyOf.includes("adult"));
 check("options: supplier original_price never exposed", !JSON.stringify(pkg).includes("210"));
+check("package: supplier kept for the checkout link", pkg.supplier === "viator");
 
-const avail = mapAvailability(fixture("staging-attraction-availability-sample.json"), { packageId: PACKAGE, date: "2026-11-25" });
+const avail = mapAvailability(fixture("staging-attraction-availability-sample.json"), {
+  activityId: ACTIVITY, packageId: PACKAGE, date: "2026-11-25", tickets: [{ skuId: "822428064800", count: 2, type: "adult" }], supplier: "klook",
+});
 check("availability: session id and confirmed total", avail.available && avail.sessionId && avail.total.amount === 2.14);
 check("availability: per-ticket lines", avail.lines[0].count === 2 && avail.lines[0].unitPrice === 1.07);
+{
+  const u = new URL(avail.checkoutUrl);
+  const q = u.searchParams;
+  check("availability: checkout link is the site's /attractions/passenger page",
+    u.origin === "https://staging.cuddlynest.com" && u.pathname === "/attractions/passenger");
+  check("checkout link: session, package, activity, tickets, date, supplier",
+    q.get("session_id") === avail.sessionId && q.get("package_id") === PACKAGE && q.get("activityskuid") === PACKAGE &&
+    q.get("activity_id") === ACTIVITY && q.get("sku_ids") === "822428064800" && q.get("sku_types") === "ADULT" &&
+    q.get("sku_prices") === "1.07" && q.get("selected_date") === "2026-11-25" && q.get("selected_time") === "" && q.get("supplier") === "klook");
+}
 
 const soldOut = mapAvailability(
   {
@@ -68,7 +81,7 @@ checkoutBody.price_details = { ...checkoutBody.price_details, supplier_total: "7
 const co = mapCheckout(checkoutBody);
 check("checkout: total, waived fee and cancellation", co.price.total === 2.14 && co.price.serviceFee === 0 && co.price.serviceFeeWaived && /Free cancellation/.test(co.cancellation));
 check("checkout: lead traveler with required fields", co.travelers[0].isLead && co.travelers[0].fields.some((f) => f.key === "email" && f.required));
-check("checkout: payment is a pending hand-off", co.payment.status === "handoff_pending");
+check("checkout: payment is a hand-off to the site", co.payment.status === "handoff" && /checkoutUrl/.test(co.payment.note));
 check("checkout: supplier total, fx and partner fields dropped", !/777\.77|THB|33\.3|klook|40024/.test(JSON.stringify(co)));
 
 // ---------------------------------------------------------------------------
@@ -175,13 +188,13 @@ await withServer({ CUDDLYNEST_ENABLE_BOOKING_TOOLS: "true" }, async (client, log
   }));
   const sent = seen.find((s) => s.url === "/v2/adp/check-availability")?.body;
   check("availability: date + time sent as one start_time", sent?.start_time === `${day(10)} 17:00:00` && sent?.sku_list[0].count === 2);
-  check("availability: answers the session id", a.available && a.sessionId);
+  check("availability: answers the session id and checkout link", a.available && a.sessionId && a.checkoutUrl.includes("/attractions/passenger?session_id="));
 
   const badIds = await client.callTool({ name: "cuddlynest_attraction_availability", arguments: { activityId: "x", packageId: PACKAGE, date: day(10), tickets: [{ skuId: "1", count: 1 }] } });
   check("availability: bad ids refused before any call", badIds.isError && payload(badIds).bookingErrorCode === "invalid_input" && seen.length === 1);
 
   const c = payload(await client.callTool({ name: "cuddlynest_attraction_checkout", arguments: { sessionId: a.sessionId, activityId: ACTIVITY, packageId: PACKAGE } }));
-  check("attraction checkout: total and pending hand-off", c.price.total === 2.14 && c.payment.status === "handoff_pending");
+  check("attraction checkout: total and hand-off", c.price.total === 2.14 && c.payment.status === "handoff");
 
   const p = payload(await client.callTool({ name: "cuddlynest_flight_price", arguments: { sessionId: "sess-1", flightId: "off_1" } }));
   check("flight price: confirmed total", p.price.total.amount === 130.53 && !JSON.stringify(p).includes("999999.99"));

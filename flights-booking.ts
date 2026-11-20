@@ -9,9 +9,10 @@
 //      creates a PENDING booking (CNBookingID) with the passengers' details. No
 //      payment and no ticket.
 //   3. book: POST /api/flight/booking/book takes raw card data, which the MCP must
-//      never handle. Payment needs CuddlyNest's checkout (hand-off URL, CP-11618) or
-//      a tokenized book endpoint (CP-11615); until then checkout answers payment
-//      "handoff_pending".
+//      never handle. Payment needs CuddlyNest's checkout: the site has
+//      /flights/passenger?session_id=&itinerary_id=, but flights isn't enabled on
+//      the public site yet (enabled-countries is empty, /flights redirects home).
+//      Until it is, checkout answers payment "handoff_pending".
 //
 // Prices: every amount is { amount, currency, api_amount, api_currency };
 // api_amount is the supplier's rate before markup and is never exposed.
@@ -362,8 +363,8 @@ export async function checkoutFlight(req: {
     payment: {
       status: "handoff_pending",
       note:
-        "Payment and ticketing happen on CuddlyNest's checkout; the hand-off link isn't available yet " +
-        "(CP-11618 / CP-11615). Never ask the user for card details.",
+        "Payment and ticketing happen on CuddlyNest's checkout, and flights isn't open on the CuddlyNest " +
+        "site yet, so the booking can't be paid from here. Never ask the user for card details.",
     },
   };
 }

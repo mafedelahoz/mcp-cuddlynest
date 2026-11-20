@@ -10,9 +10,10 @@
 //      with fees, cancellation policy and the traveler fields the supplier asks
 //      for. No order is created and nothing is charged.
 //
-// Creating the booking (POST /v2/booking/create) takes the Stripe payment result,
-// which the user can only produce on CuddlyNest's checkout. That hand-off URL is
-// CP-11617; until it exists, checkout answers payment "handoff_pending".
+// Payment: the user finishes on the site's checkout page, /attractions/passenger,
+// with the availability session in the query (the URL the activity page sends
+// the user to, read from the site bundle 2026-11-20). That page holds the price
+// for ~15 minutes and creates the booking after Stripe; the MCP never pays.
 //
 // Prices: customer prices only. original_price / supplier_total / fx fields are
 // the supplier's rate before markup and are never exposed.
@@ -27,6 +28,11 @@ const SHOPPING_API_URL = (
 ).replace(/\/+$/, "");
 const BOOKING_API_URL = (
   process.env.CUDDLYNEST_ATTRACTIONS_BOOKING_API_URL || "https://staging-attractions-booking-service.cuddlynest.com"
+).replace(/\/+$/, "");
+// A staging session only opens on the staging site.
+const SITE_URL = (
+  process.env.CUDDLYNEST_ATTRACTIONS_SITE_URL ||
+  (new URL(SHOPPING_API_URL).hostname.startsWith("staging-") ? "https://staging.cuddlynest.com" : "https://www.cuddlynest.com")
 ).replace(/\/+$/, "");
 // Availability waits on the supplier: ~24 s seen on staging.
 const TIMEOUT_MS = parseInt(process.env.CUDDLYNEST_ATTRACTIONS_BOOKING_TIMEOUT_MS || "45000", 10);
@@ -70,6 +76,8 @@ export interface AttractionPackage {
   times: string[];
   participants: { min: number | null; max: number | null };
   tickets: TicketType[];
+  /** Supplier code (klook, viator...): the checkout link carries it. */
+  supplier: string | null;
 }
 
 export interface AttractionOptions {
@@ -81,6 +89,8 @@ export interface AttractionOptions {
 export interface TicketSelection {
   skuId: string;
   count: number;
+  /** Ticket type from the options step (adult, child...); the checkout link carries it. */
+  type?: string;
 }
 
 export interface AvailabilityRequest {
@@ -89,6 +99,8 @@ export interface AvailabilityRequest {
   date: string;
   time?: string;
   tickets: TicketSelection[];
+  /** Package supplier from the options step. */
+  supplier?: string;
   log?: Log;
 }
 
@@ -111,6 +123,8 @@ export type AvailabilityResult =
       cancellation: string[];
       priceChanged: boolean;
       timeChanged: { requested: string | null; suggested: string | null } | null;
+      /** CuddlyNest checkout page for this session, where the user pays. */
+      checkoutUrl: string;
     }
   | {
       available: false;
@@ -154,7 +168,7 @@ export interface AttractionCheckout {
   /** Extra answers the supplier asks for (pickup hotel, flight number, ...). */
   extraFields: TravelerField[];
   orderId: string | null;
-  payment: { status: "handoff_pending"; note: string };
+  payment: { status: "handoff"; note: string };
 }
 
 // ---------------------------------------------------------------------------
@@ -264,6 +278,7 @@ export function mapPackage(pkg: any, skusBody: any, date: string): AttractionPac
     times: timesOn(skus, date),
     participants: { min: num(p.package_min_pax), max: num(p.package_max_pax) },
     tickets: skus.map((s) => mapTicketType(s, rules)).filter((t): t is TicketType => !!t),
+    supplier: str(p.source) ?? str(pkg?.source),
   };
 }
 
@@ -278,7 +293,42 @@ function mapLines(items: any[]): TicketLine[] {
 }
 
 /** check-availability response -> our result. Supplier codes/messages/trace ids are dropped. */
-export function mapAvailability(body: any, req: Pick<AvailabilityRequest, "packageId" | "date" | "time">): AvailabilityResult {
+/**
+ * The site's checkout link for an available session (the activity page builds
+ * the same one after check-availability). Ticket types and unit prices are the
+ * ones the user saw; the page re-reads the session for the real price.
+ */
+export function buildAttractionCheckoutUrl(
+  a: {
+    sessionId: string;
+    activityId: string;
+    packageId: string;
+    date: string;
+    time: string | null;
+    supplier?: string | null;
+    tickets: Array<{ skuId: string; type?: string | null; unitPrice?: number | null }>;
+  },
+  site = SITE_URL,
+): string {
+  const q = new URLSearchParams({
+    session_id: a.sessionId,
+    activityskuid: a.packageId,
+    package_id: a.packageId,
+    activity_id: a.activityId,
+    sku_ids: a.tickets.map((t) => t.skuId).join(","),
+    sku_types: a.tickets.map((t) => (t.type ? t.type.toUpperCase() : t.skuId)).join(","),
+    sku_prices: a.tickets.map((t) => String(t.unitPrice ?? 0)).join(","),
+    selected_date: a.date,
+    selected_time: a.time ?? "",
+  });
+  if (a.supplier) q.set("supplier", a.supplier);
+  return `${site}/attractions/passenger?${q}`;
+}
+
+export function mapAvailability(
+  body: any,
+  req: Pick<AvailabilityRequest, "activityId" | "packageId" | "date" | "time" | "tickets" | "supplier">,
+): AvailabilityResult {
   if (body?.success !== true || !str(body?.session_id)) {
     return {
       available: false,
@@ -298,6 +348,20 @@ export function mapAvailability(body: any, req: Pick<AvailabilityRequest, "packa
   const pkg = packages.find((p: any) => p?.package_id === req.packageId) ?? packages[0];
   const lines = mapLines(Object.values(pkg?.pricing ?? {}));
   const total = num(body.is_price_changed ? body.new_total_price : null) ?? num(pkg?.total_price);
+  const time = body.is_time_changed ? (str(body.suggested_time) ?? req.time ?? null) : (req.time ?? null);
+  const checkoutUrl = buildAttractionCheckoutUrl({
+    sessionId: body.session_id,
+    activityId: req.activityId,
+    packageId: str(pkg?.package_id) ?? req.packageId,
+    date: req.date,
+    time: time ? hhmm(time) : null,
+    supplier: req.supplier,
+    tickets: (req.tickets ?? []).map((t) => ({
+      skuId: t.skuId,
+      type: t.type,
+      unitPrice: lines.find((l) => l.skuId === t.skuId)?.unitPrice ?? null,
+    })),
+  });
   return {
     available: true,
     sessionId: body.session_id,
@@ -308,6 +372,7 @@ export function mapAvailability(body: any, req: Pick<AvailabilityRequest, "packa
     cancellation: strings(body.cancellation_policy),
     priceChanged: body.is_price_changed === true,
     timeChanged: body.is_time_changed ? { requested: str(body.old_time), suggested: str(body.suggested_time) } : null,
+    checkoutUrl,
   };
 }
 
@@ -365,10 +430,10 @@ export function mapCheckout(body: any): AttractionCheckout {
     extraFields,
     orderId: str(body?.cn_order_id),
     payment: {
-      status: "handoff_pending",
+      status: "handoff",
       note:
-        "Payment and booking confirmation happen on CuddlyNest's checkout; the hand-off link isn't " +
-        "available yet (CP-11617). Never ask the user for card details.",
+        "The user enters traveler details and pays on CuddlyNest's checkout: send them to checkoutUrl " +
+        "from the availability step (it holds the price ~15 minutes). Never ask the user for card details.",
     },
   };
 }
@@ -427,7 +492,7 @@ export async function checkAttractionAvailability(req: AvailabilityRequest): Pro
     include_packages: false,
     include_skus: false,
   });
-  const result = mapAvailability(body, req);
+  const result = mapAvailability(body, { ...req, tickets });
   req.log?.("info", "Attraction availability", {
     activityId: req.activityId,
     available: result.available,

@@ -282,7 +282,8 @@ const ATTRACTION_AVAILABILITY_TOOL: Tool = {
   },
   description:
     "Step 2 of booking an attraction. Checks live with the supplier that the chosen tickets are " +
-    "available on the date and time, and returns the confirmed total and a sessionId. Only call it " +
+    "available on the date and time, and returns the confirmed total, a sessionId and the CuddlyNest " +
+    "checkoutUrl where the user pays (valid ~15 minutes). Only call it " +
     "once the user has chosen the package, tickets and time and wants to book. If it answers " +
     "available: false, offer the availableTimes / suggestions it returns.",
   inputSchema: {
@@ -296,10 +297,15 @@ const ATTRACTION_AVAILABILITY_TOOL: Tool = {
         description: "Ticket types and how many of each.",
         items: {
           type: "object",
-          properties: { skuId: { type: "string" }, count: { type: "integer", minimum: 1 } },
+          properties: {
+            skuId: { type: "string" },
+            count: { type: "integer", minimum: 1 },
+            type: { type: "string", description: "The ticket's type from the options step (adult, child...)." },
+          },
           required: ["skuId", "count"],
         },
       },
+      supplier: { type: "string", description: "The package's supplier from the options step." },
     },
     required: ["activityId", "packageId", "date", "tickets"],
   },
@@ -951,8 +957,13 @@ async function handleBooking(name: string, params: any) {
           date: String(params.date ?? ""),
           time: params.time ? String(params.time) : undefined,
           tickets: Array.isArray(params.tickets)
-            ? params.tickets.map((t: any) => ({ skuId: String(t?.skuId ?? ""), count: Number(t?.count) }))
+            ? params.tickets.map((t: any) => ({
+                skuId: String(t?.skuId ?? ""),
+                count: Number(t?.count),
+                ...(t?.type ? { type: String(t.type) } : {}),
+              }))
             : [],
+          supplier: params.supplier ? String(params.supplier) : undefined,
           log,
         });
         return textResult({
@@ -960,7 +971,8 @@ async function handleBooking(name: string, params: any) {
           step: "availability",
           ...r,
           note: r.available
-            ? "Available. Next: cuddlynest_attraction_checkout with this sessionId."
+            ? "Available. Show the total, then send the user to checkoutUrl to enter traveler details and pay " +
+              "(within ~15 minutes). cuddlynest_attraction_checkout previews fees and traveler fields."
             : "Not available as requested: offer the user the alternatives returned.",
         });
       }

@@ -206,8 +206,9 @@ npm run watch
   the checkout page. Booking status by enquiry id + booking number. Hidden unless
   `CUDDLYNEST_ENABLE_BOOKING_TOOLS=true`
 - `attractions-booking.ts`, `flights-booking.ts` — attraction options →
-  live availability → checkout, and flight live price → pending booking, behind
-  the same flag. The payment hand-off is pending, so both stop before payment
+  live availability (with the CuddlyNest checkout link where the user pays) →
+  checkout preview, and flight live price → pending booking, behind the same
+  flag. Flights has no hand-off yet: the site's flights checkout isn't enabled
 
 
 ## License
